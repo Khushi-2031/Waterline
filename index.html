@@ -318,8 +318,8 @@ const FORMS = {
 };
 
 /* ============================================================
-   THE PLAN — 5 strict training days (Mon/Tue/Wed/Fri/Sat),
-   Thursday and Sunday fully off. Built for the goal stated:
+   THE PLAN — 6 training days (Mon–Sat), Sunday fully off. Built
+   for the goal stated:
    lose fat, flatten the stomach and arms, shape the glutes,
    without adding muscle bulk. That means higher rep ranges
    (12–20), lighter loads than a strength program, short rest
@@ -379,7 +379,19 @@ const PLAN = [
     P("Steady cardio, moderate pace","Bike or treadmill",1,"10 min")]}
 ]},
 
-{id:"d4",dow:4,tag:"Day 4 · Thursday",name:"Rest",sub:"Full day off — no workout",mins:"0",blocks:[]},
+{id:"d4",dow:4,tag:"Day 4 · Thursday",name:"Core & Cardio",sub:"Flat-stomach focus + steady state — your lighter day",mins:"46–50",blocks:[
+  {label:"Warm-up",mins:5,items:[
+    P("Elliptical, easy","Elliptical",1,"4 min"),
+    P("Dynamic mobility","Floor",1,"3 min")]},
+  {label:"Core circuit — 2 rounds",mins:20,items:[
+    P("Plank","Floor",2,"40 sec",30,"",0,"core"),
+    P("Hanging knee raise","Captain's chair",2,"15",30,"",0,"core"),
+    P("Kneeling cable crunch","High pulley",2,"15",30,"",0,"core"),
+    P("Side plank","Floor",2,"30 sec / side",30,"",0,"core"),
+    P("Cable woodchop","Functional trainer",2,"12 / side",30,"",0,"core")]},
+  {label:"Cardio finish",mins:20,items:[
+    P("Steady cardio, moderate pace","Bike or treadmill",1,"18 min","","Keep it conversational — this is a fat-burn pace, not a race.")]}
+]},
 
 {id:"d5",dow:5,tag:"Day 5 · Friday",name:"Glutes & Legs",sub:"Volume · the other weekly glute session",mins:"52–56",blocks:[
   {label:"Warm-up",mins:5,items:[
@@ -482,10 +494,10 @@ function logFor(d){
   if(!S.history[k][d.id]) S.history[k][d.id] = {};
   return S.history[k][d.id];
 }
-/* Attendance model: every scheduled training day (Mon/Tue/Wed/Fri/Sat) counts
-   as trained unless you explicitly mark it missed — you only log the
-   exceptions. Thursday and Sunday are off and don't count either way. */
-const isWorkoutDow = (dow)=> dow!==0 && dow!==4;
+/* Attendance model: every scheduled training day (Mon–Sat) counts as
+   trained unless you explicitly mark it missed — you only log the
+   exceptions. Sunday is off and doesn't count either way. */
+const isWorkoutDow = (dow)=> dow!==0;
 function streak(){
   let n=0, dt=new Date();
   const since = S.since || todayKey();
@@ -500,7 +512,7 @@ function streak(){
   return n;
 }
 
-/* This week's 5 training days (Mon/Tue/Wed/Fri/Sat), as Date objects. */
+/* This week's 6 training days (Mon–Sat), as Date objects. */
 function weekWorkoutDates(){
   const now = new Date();
   const monday = new Date(now);
@@ -539,7 +551,7 @@ document.getElementById("bwInput").oninput = (e)=>{
    tap a past or today box to mark it missed (tap again to undo).
    That's the only logging this feature asks for.
    ============================================================ */
-const WK_LETTERS = ["M","T","W","F","S"];
+const WK_LETTERS = ["M","T","W","T","F","S"];
 function renderWeekStrip(){
   const el = document.getElementById("wkStrip");
   const todayK = todayKey();
