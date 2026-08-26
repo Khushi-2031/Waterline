@@ -104,6 +104,43 @@
   .wt:focus,.dot:focus-visible,.pill:focus-visible,nav button:focus-visible{
     outline:2px solid var(--foam);outline-offset:2px}
 
+  /* ---------- form picture ---------- */
+  .formBtn{display:inline-block;margin-left:7px;font-family:var(--mono);font-size:10px;
+    letter-spacing:.08em;text-transform:uppercase;color:var(--mute);background:none;
+    border:0;border-bottom:1px solid var(--line);padding:0 0 1px;cursor:pointer}
+  .formBtn:hover,.formBtn:focus-visible,.formBtn.on{color:var(--foam);border-bottom-color:var(--foam)}
+  .formPanel{display:none;gap:14px;align-items:center;margin-top:10px;padding:12px;
+    border:1px solid var(--line);border-radius:10px;background:rgba(127,227,210,.05)}
+  .formPanel.show{display:flex}
+  .fig{width:58px;height:64px;flex:0 0 auto;color:var(--foam)}
+  .fig .hd{fill:currentColor}
+  .fig .im{fill:currentColor;opacity:.3}
+  .fig path,.fig line:not(.grd){stroke:currentColor;stroke-width:5;stroke-linecap:round;
+    stroke-linejoin:round;fill:none}
+  .fig line.grd{stroke:var(--line);stroke-width:2}
+  .formPanel .cue{font-size:12.5px;color:var(--sand);line-height:1.5}
+
+  /* ---------- body weight ---------- */
+  .bw{display:flex;align-items:center;gap:10px;margin-top:14px;font-family:var(--mono);
+    font-size:11px;color:var(--mute);flex-wrap:wrap}
+  .bw input{width:72px;background:transparent;border:1px solid var(--line);border-radius:8px;
+    color:var(--sand);font-family:var(--mono);font-size:12px;padding:6px 8px}
+  .bw input::placeholder{color:var(--mute)}
+  .bw input:focus{outline:2px solid var(--foam);outline-offset:2px}
+  .bw span{color:var(--foam)}
+
+  /* ---------- this week strip ---------- */
+  .wk{display:flex;align-items:center;gap:10px;margin-top:12px;font-family:var(--mono);
+    font-size:11px;color:var(--mute)}
+  .wkdots{display:flex;gap:6px}
+  .wdot{width:26px;height:26px;border-radius:8px;border:1px solid var(--line);background:transparent;
+    color:var(--mute);font-family:var(--mono);font-size:11px;cursor:pointer;padding:0}
+  .wdot.on{background:var(--tide);border-color:var(--tide);color:#04211f;font-weight:700}
+  .wdot.missed{border-color:var(--amber);border-style:dashed;color:var(--amber)}
+  .wdot.future{opacity:.35;cursor:default}
+  .wdot.today{box-shadow:0 0 0 1px var(--foam)}
+  .wdot:focus-visible{outline:2px solid var(--foam);outline-offset:2px}
+
   /* ---------- gear tab ---------- */
   .gsec{margin-top:24px}
   .gsec h3{margin:0 0 10px;font-family:var(--mono);font-size:11px;letter-spacing:.18em;
@@ -170,6 +207,15 @@
       <div><b id="mMins">—</b> min</div>
       <div><b id="mPct">0%</b> done</div>
     </div>
+    <div class="bw">
+      <label for="bwInput">Body weight</label>
+      <input id="bwInput" type="text" inputmode="decimal" placeholder="kg today" aria-label="Log today's body weight in kg">
+      <span id="bwTrend"></span>
+    </div>
+    <div class="wk">
+      <label>This week</label>
+      <div class="wkdots" id="wkStrip"></div>
+    </div>
   </div>
 </header>
 
@@ -183,7 +229,7 @@
   </nav>
   <main id="view"></main>
   <div class="foot">
-    Log the weight. Beat it next week.<br>
+    Bodyweight in, reps up. That's the whole log.<br>
     <button id="bExp" class="tiny">Back up</button>
     <button id="bImp" class="tiny">Restore</button>
   </div>
@@ -234,139 +280,140 @@ const GEAR = [
 ];
 
 /* ============================================================
-   THE PLAN — 7 days, ~90–120 min each
+   FORM PICTURES — minimalist correct-position diagrams,
+   grouped by movement pattern so the same picture covers every
+   exercise that shares that position. Shown inline, in-app.
    ============================================================ */
-const P = (n,g,s,r,rest,note,w)=>({n,g,s,r,rest:rest||0,note:note||"",w:!!w});
+const FORMS = {
+  squat:{cue:"Chest tall, hips back and down, knees track over the toes.",
+    svg:'<svg viewBox="0 0 100 110" class="fig"><circle class="hd" cx="52" cy="18" r="8"/><path d="M52 26 L49 54 M49 54 L34 70 L38 100 M49 54 L64 70 L60 100 M52 30 L74 40"/><line class="grd" x1="8" y1="102" x2="92" y2="102"/></svg>'},
+  hinge:{cue:"Soft knees, push the hips back, flat back, bar stays close to the legs.",
+    svg:'<svg viewBox="0 0 100 110" class="fig"><circle class="hd" cx="54" cy="16" r="8"/><path d="M54 24 L40 50 M40 50 L37 78 L36 100 M40 50 L44 78 L45 100 M54 28 L50 64"/><line x1="40" y1="64" x2="62" y2="64"/><line class="grd" x1="8" y1="102" x2="92" y2="102"/></svg>'},
+  bridge:{cue:"Chin tucked, drive through the heels, pause and squeeze at the top.",
+    svg:'<svg viewBox="0 0 100 110" class="fig"><circle class="hd" cx="14" cy="76" r="8"/><path d="M20 78 L52 66 M52 66 L68 88 M68 88 L80 98"/><rect class="im" x="2" y="82" width="16" height="6"/><line class="grd" x1="8" y1="102" x2="92" y2="102"/></svg>'},
+  lunge:{cue:"Front knee stacks over the ankle, torso stays upright, step under control.",
+    svg:'<svg viewBox="0 0 100 110" class="fig"><circle class="hd" cx="50" cy="16" r="8"/><path d="M50 24 L50 52 M50 52 L66 64 L64 100 M50 52 L32 70 L26 100 M50 28 L38 20 M50 28 L64 36"/><line class="grd" x1="8" y1="102" x2="92" y2="102"/></svg>'},
+  pressH:{cue:"Shoulder blades pinned, feet planted, bar path stays straight over the chest.",
+    svg:'<svg viewBox="0 0 100 110" class="fig"><circle class="hd" cx="16" cy="58" r="8"/><path d="M24 58 L60 58 M60 58 L68 78 L64 100 M36 58 L36 22"/><line x1="26" y1="22" x2="46" y2="22"/><line class="grd" x1="6" y1="66" x2="72" y2="66"/></svg>'},
+  pressV:{cue:"Ribs down, core braced, press straight overhead — not out in front.",
+    svg:'<svg viewBox="0 0 100 110" class="fig"><circle class="hd" cx="50" cy="16" r="8"/><path d="M50 24 L50 58 M50 58 L46 100 M50 58 L54 100 M50 28 L66 10 M50 28 L34 10"/><line x1="34" y1="10" x2="66" y2="10"/><line class="grd" x1="8" y1="102" x2="92" y2="102"/></svg>'},
+  pullV:{cue:"Pull with the elbows, not the hands. Chest up, lead down to the collarbone.",
+    svg:'<svg viewBox="0 0 100 110" class="fig"><circle class="hd" cx="50" cy="16" r="8"/><path d="M50 24 L50 56 M50 56 L40 76 L40 100 M50 56 L60 76 L60 100 M50 28 L70 18 L56 40 M50 28 L30 18 L44 40"/><line x1="30" y1="18" x2="70" y2="18"/><line class="grd" x1="8" y1="102" x2="92" y2="102"/></svg>'},
+  pullH:{cue:"Flat back, ribs down, drive the elbow back past the torso.",
+    svg:'<svg viewBox="0 0 100 110" class="fig"><circle class="hd" cx="56" cy="18" r="8"/><path d="M56 25 L42 52 M42 52 L39 100 M56 30 L70 38 L60 54 M60 54 L78 60"/><line class="grd" x1="8" y1="102" x2="92" y2="102"/></svg>'},
+  curl:{cue:"Elbow pinned to your side, curl slow, no swinging the torso.",
+    svg:'<svg viewBox="0 0 100 110" class="fig"><circle class="hd" cx="50" cy="16" r="8"/><path d="M50 24 L50 58 M50 58 L46 100 M50 58 L54 100 M50 28 L60 50 L52 32"/><line class="grd" x1="8" y1="102" x2="92" y2="102"/></svg>'},
+  triceps:{cue:"Elbow stays high and still, only the forearm moves.",
+    svg:'<svg viewBox="0 0 100 110" class="fig"><circle class="hd" cx="50" cy="16" r="8"/><path d="M50 24 L48 58 M48 58 L44 100 M48 58 L52 100 M50 28 L58 34 L58 56"/><line class="grd" x1="8" y1="102" x2="92" y2="102"/></svg>'},
+  legIso:{cue:"Controlled tempo, no locking out hard at the top.",
+    svg:'<svg viewBox="0 0 100 110" class="fig"><circle class="hd" cx="28" cy="18" r="8"/><path d="M28 26 L30 60 M30 60 L60 60 L78 45"/><rect class="im" x="76" y="28" width="6" height="32"/><line class="grd" x1="8" y1="66" x2="92" y2="66"/></svg>'},
+  core:{cue:"Ribs pulled down, glutes squeezed, no arch in the lower back.",
+    svg:'<svg viewBox="0 0 100 110" class="fig"><circle class="hd" cx="15" cy="55" r="7"/><path d="M21 55 L75 70 M21 55 L21 76 M75 70 L90 70"/><line class="grd" x1="6" y1="80" x2="94" y2="80"/></svg>'},
+  raise:{cue:"Light weight, elbows lead the movement, no swinging or shrugging.",
+    svg:'<svg viewBox="0 0 100 110" class="fig"><circle class="hd" cx="50" cy="16" r="8"/><path d="M50 24 L50 58 M50 58 L46 100 M50 58 L54 100 M50 28 L78 26 M50 28 L22 26"/><line class="grd" x1="8" y1="102" x2="92" y2="102"/></svg>'},
+  swing:{cue:"Power comes from the hip snap, not the arms or the low back.",
+    svg:'<svg viewBox="0 0 100 110" class="fig"><circle class="hd" cx="52" cy="18" r="8"/><path d="M52 26 L42 52 M42 52 L36 80 L38 100 M42 52 L50 80 L52 100 M52 30 L70 55"/><circle class="im" cx="74" cy="58" r="5"/><line class="grd" x1="8" y1="102" x2="92" y2="102"/></svg>'},
+  calf:{cue:"Full stretch at the bottom, pause at the top of every rep.",
+    svg:'<svg viewBox="0 0 100 110" class="fig"><circle class="hd" cx="50" cy="14" r="8"/><path d="M50 22 L50 55 M50 55 L47 95 M50 55 L53 95"/><line x1="44" y1="100" x2="52" y2="104"/><line x1="54" y1="100" x2="62" y2="104"/><line class="grd" x1="8" y1="102" x2="92" y2="102"/></svg>'}
+};
+
+/* ============================================================
+   THE PLAN — 5 strict training days (Mon/Tue/Wed/Fri/Sat),
+   Thursday and Sunday fully off. Built for the goal stated:
+   lose fat, flatten the stomach and arms, shape the glutes,
+   without adding muscle bulk. That means higher rep ranges
+   (12–20), lighter loads than a strength program, short rest
+   to keep the session metabolic, and cardio in every session —
+   not a heavy/low-rep hypertrophy split. Weight logging stays
+   optional on 1–2 main lifts; bodyweight is the log that matters.
+   ============================================================ */
+const P = (n,g,s,r,rest,note,w,form)=>({n,g,s,r,rest:rest||0,note:note||"",w:!!w,form:form||null});
 
 const PLAN = [
-{id:"d1",dow:1,tag:"Day 1 · Monday",name:"Lower A",sub:"Strength · glutes & hamstrings",mins:"100–115",blocks:[
-  {label:"Warm-up",mins:10,items:[
-    P("Spin bike, easy pace","Spin bike",1,"5 min"),
-    P("Hip circles, leg swings, glute bridges","Floor",2,"12 reps"),
-    P("Empty-bar squat ramp sets","Squat rack",2,"8 reps")]},
-  {label:"Main work",mins:65,items:[
-    P("Barbell back squat","Squat rack",4,"6–8",180,"Depth over load. Stop 2 reps short of failure.",1),
-    P("Romanian deadlift","Barbell",4,"8–10",120,"Push hips back, feel the hamstring stretch.",1),
-    P("Seated leg press","Leg press",3,"10–12",90,"Feet high and wide for more glute.",1),
-    P("Seated leg curl","SportsArt curl",3,"12–15",60,"",1),
-    P("Dumbbell reverse lunge","Dumbbells",3,"10 / leg",75,"",1),
-    P("Cable glute kickback","Functional trainer",3,"15 / side",45),
-    P("Calf raise on step","Step + dumbbell",3,"15–20",45)]},
-  {label:"Core + finish",mins:20,items:[
-    P("Hanging knee raise","Captain's chair",3,"12",45),
-    P("Cable woodchop","Functional trainer",3,"12 / side",45),
-    P("Incline walk, 8% grade","Treadmill",1,"10 min")]}
+{id:"d1",dow:1,tag:"Day 1 · Monday",name:"Glutes & Legs",sub:"Shape · light-moderate weight, high reps",mins:"50–55",blocks:[
+  {label:"Warm-up",mins:5,items:[
+    P("Incline treadmill walk","Treadmill",1,"4 min"),
+    P("Glute bridges + leg swings","Floor",2,"15 reps")]},
+  {label:"Main work",mins:35,items:[
+    P("Goblet squat","Kettlebell / dumbbell",3,"15",45,"Light weight. This is a shaping rep range, not a max-effort one.",1,"squat"),
+    P("Barbell hip thrust","Barbell + flat bench",3,"15",60,"Chin tucked, squeeze hard at the top — this is the main glute builder.",1,"bridge"),
+    P("Dumbbell reverse lunge","Dumbbells",3,"12 / leg",45,"",0,"lunge"),
+    P("Cable glute kickback","Functional trainer",3,"15 / side",30,"",0,"hinge"),
+    P("Seated leg press — feet high & wide","Leg press",2,"15",45,"Glute-biased foot placement.",0,"legIso")]},
+  {label:"Core + cardio finish",mins:12,items:[
+    P("Hanging knee raise","Captain's chair",2,"15",30,"",0,"core"),
+    P("Incline walk, fat-burn pace","Treadmill",1,"8 min")]}
 ]},
 
-{id:"d2",dow:2,tag:"Day 2 · Tuesday",name:"Push",sub:"Chest · shoulders · triceps",mins:"95–110",blocks:[
-  {label:"Warm-up",mins:10,items:[
-    P("Cross trainer, easy","Elliptical",1,"5 min"),
-    P("Band pull-aparts + shoulder circles","Floor",2,"15 reps"),
-    P("Empty-bar bench ramp sets","Bench",2,"10 reps")]},
-  {label:"Main work",mins:65,items:[
-    P("Barbell bench press","Flat bench + rack",4,"6–8",150,"Ask for a spot on the top set.",1),
-    P("Incline dumbbell press","Incline bench",3,"8–10",120,"",1),
-    P("Plate-loaded chest press","Plate-loaded press",3,"10–12",90,"Safe to push hard here — no spotter needed.",1),
-    P("Cable crossover","Functional trainer",3,"12–15",60),
-    P("Seated dumbbell shoulder press","Dumbbells + bench",3,"8–10",120,"",1),
-    P("Dumbbell lateral raise","Dumbbells",4,"12–15",45,"Light. Elbows lead, no swinging."),
-    P("Rope triceps pushdown","High pulley",3,"12",45),
-    P("Overhead cable triceps extension","Functional trainer",2,"12",45)]},
-  {label:"Core + finish",mins:18,items:[
-    P("Kneeling cable crunch","High pulley",3,"15",45),
-    P("Bike, easy spin","Upright bike",1,"8 min")]}
+{id:"d2",dow:2,tag:"Day 2 · Tuesday",name:"Upper Tone + Core",sub:"Light weight, high reps — no bulk work",mins:"45–50",blocks:[
+  {label:"Warm-up",mins:5,items:[
+    P("Cross trainer, easy","Elliptical",1,"4 min"),
+    P("Band pull-aparts","Floor",2,"15 reps")]},
+  {label:"Main work",mins:30,items:[
+    P("Seated dumbbell shoulder press","Dumbbells + bench",3,"12–15",45,"Light weight — shoulders and posture, not size.",0,"pressV"),
+    P("Seated cable row","Row station",3,"15",45,"",0,"pullH"),
+    P("Incline dumbbell press, light","Incline bench",3,"12–15",45,"",0,"pressH"),
+    P("Wide-grip lat pulldown ↔ rope triceps pushdown","High pulley",3,"15 + 15",30,"Superset. No rest between the two — keep moving.",0,"pullV"),
+    P("Dumbbell lateral raise ↔ rear-delt cable flye","Dumbbells + trainer",3,"15 + 15",30,"Superset. Very light — this is for shape, not delts of steel.",0,"raise")]},
+  {label:"Core + cardio finish",mins:12,items:[
+    P("Kneeling cable crunch","High pulley",2,"15",30,"",0,"core"),
+    P("Cable woodchop","Functional trainer",2,"12 / side",30,"",0,"core"),
+    P("Bike, easy spin","Upright bike",1,"6 min")]}
 ]},
 
-{id:"d3",dow:3,tag:"Day 3 · Wednesday",name:"Pull",sub:"Back · biceps · core",mins:"95–110",blocks:[
-  {label:"Warm-up",mins:10,items:[
-    P("Treadmill brisk walk","Treadmill",1,"5 min"),
-    P("Dead hang","Pull-up bar",2,"20–30 sec"),
-    P("Scapular pull-ups","Assisted machine",2,"10 reps")]},
-  {label:"Main work",mins:65,items:[
-    P("Assisted pull-up","Assisted pull-up machine",4,"6–8",150,"Drop the assistance by one plate every 2 weeks.",1),
-    P("Wide-grip lat pulldown","High pulley",3,"10–12",90,"",1),
-    P("Barbell bent-over row","Barbell",4,"8–10",120,"Flat back, ribs down.",1),
-    P("Single-arm dumbbell row","Dumbbell + bench",3,"10 / side",75,"",1),
-    P("Seated cable row","Row station",3,"12",75,"",1),
-    P("Cable face pull","Functional trainer",3,"15",45,"Fixes desk posture. Don't skip."),
-    P("Dumbbell biceps curl","Dumbbells",3,"10–12",60,"",1),
-    P("Rope hammer curl","High pulley",3,"12",45)]},
-  {label:"Core + finish",mins:18,items:[
-    P("Captain's chair leg raise","Captain's chair",3,"12",45),
-    P("Plank","Floor",3,"45 sec",45),
-    P("Incline walk","Treadmill",1,"10 min")]}
+{id:"d3",dow:3,tag:"Day 3 · Wednesday",name:"Full Body Burn",sub:"Circuit style — this is your calorie-burn day",mins:"46–50",blocks:[
+  {label:"Warm-up",mins:5,items:[
+    P("Skipping rope","Rope",2,"1 min",30),
+    P("Dynamic mobility","Floor",1,"3 min")]},
+  {label:"Circuit A — 3 rounds, minimal rest",mins:15,items:[
+    P("Kettlebell swing","Kettlebell",3,"15",0,"",0,"swing"),
+    P("Push-up","Floor",3,"12",0,"",0,"pressH"),
+    P("Walking lunge","Bodyweight",3,"20 steps",0,"",0,"lunge"),
+    P("Step-up","Step platform",3,"10 / leg",45,"45 sec rest after each full round, not between exercises.",0,"lunge")]},
+  {label:"Circuit B — 2 rounds",mins:12,items:[
+    P("Suspension row","TRX straps",2,"12",0,"",0,"pullH"),
+    P("Banded hip abduction","Band / cable",2,"20",0,"",0,"raise"),
+    P("Cable woodchop","Functional trainer",2,"12 / side",45,"",0,"core")]},
+  {label:"Core + cardio finish",mins:15,items:[
+    P("Plank","Floor",2,"40 sec",30,"",0,"core"),
+    P("Steady cardio, moderate pace","Bike or treadmill",1,"10 min")]}
 ]},
 
-{id:"d4",dow:4,tag:"Day 4 · Thursday",name:"Flow & Recover",sub:"No pre-workout today",mins:"75–90",blocks:[
-  {label:"Zone 2",mins:35,items:[
-    P("Incline walk, 8–10% grade","Treadmill",1,"30–35 min","","Slow enough to hold a conversation. That's the whole point.")]},
-  {label:"Yoga flow",mins:30,items:[
-    P("Sun salutation A","Floor",5,"1 round"),
-    P("Sun salutation B","Floor",3,"1 round"),
-    P("Standing sequence — warrior I / II, triangle","Floor",1,"10 min"),
-    P("Hip openers — pigeon, lizard, seated fold","Floor",1,"10 min")]},
-  {label:"Release",mins:15,items:[
-    P("Foam roll: quads, IT band, glutes","Foam roller",1,"8 min"),
-    P("Thoracic extensions over roller","Foam roller",1,"3 min"),
-    P("Box breathing","Floor",1,"4 min")]}
-]},
+{id:"d4",dow:4,tag:"Day 4 · Thursday",name:"Rest",sub:"Full day off — no workout",mins:"0",blocks:[]},
 
-{id:"d5",dow:5,tag:"Day 5 · Friday",name:"Lower B",sub:"Volume · quads & glutes",mins:"100–115",blocks:[
-  {label:"Warm-up",mins:10,items:[
-    P("Upright bike","Upright bike",1,"5 min"),
-    P("Bodyweight step-ups","Step platform",2,"12 / leg"),
+{id:"d5",dow:5,tag:"Day 5 · Friday",name:"Glutes & Legs",sub:"Volume · the other weekly glute session",mins:"52–56",blocks:[
+  {label:"Warm-up",mins:5,items:[
+    P("Upright bike","Upright bike",1,"4 min"),
     P("Banded glute activation","Floor",2,"15 reps")]},
-  {label:"Main work",mins:70,items:[
-    P("Goblet squat","Kettlebell / dumbbell",4,"10–12",90,"",1),
-    P("Seated leg press — feet high & wide","Leg press",4,"12–15",90,"Glute-biased foot placement.",1),
-    P("Leg extension","SportsArt extension",3,"15",60,"Drop set on the last one.",1),
-    P("Bulgarian split squat","Dumbbells + bench",3,"10 / leg",90,"The hardest one here. Keep it.",1),
-    P("Barbell hip thrust","Barbell + flat bench",4,"10–12",90,"Chin tucked, pause 1 sec at the top.",1),
-    P("Lying / seated leg curl","SportsArt curl",3,"12–15",60,"",1),
-    P("Kettlebell swing","Kettlebell",3,"15",60),
-    P("Calf raise","Step platform",4,"20",30)]},
-  {label:"Finish",mins:12,items:[
-    P("Easy cycle","Spin bike",1,"10 min")]}
+  {label:"Main work",mins:38,items:[
+    P("Barbell hip thrust","Barbell + flat bench",3,"15",60,"Chin tucked, pause 1 sec at the top.",1,"bridge"),
+    P("Bulgarian split squat","Dumbbells + bench",3,"12 / leg",60,"The hardest one here. Keep it light and controlled.",0,"lunge"),
+    P("Cable glute kickback","Functional trainer",3,"15 / side",30,"",0,"hinge"),
+    P("Romanian deadlift, light","Barbell",3,"12",60,"Push hips back, feel the hamstring stretch — not a heavy pull.",1,"hinge"),
+    P("Lying leg curl","SportsArt curl",2,"15",30,"",0,"legIso"),
+    P("Calf raise","Step platform",2,"20",30,"",0,"calf")]},
+  {label:"Finish",mins:10,items:[
+    P("Kettlebell swing","Kettlebell",2,"15",30,"",0,"swing"),
+    P("Easy cycle","Spin bike",1,"6 min")]}
 ]},
 
-{id:"d6",dow:6,tag:"Day 6 · Saturday",name:"Upper Pump",sub:"Full upper + arms",mins:"90–105",blocks:[
-  {label:"Warm-up",mins:10,items:[
-    P("Cross trainer","Elliptical",1,"5 min"),
-    P("Band pull-aparts","Floor",2,"20 reps"),
+{id:"d6",dow:6,tag:"Day 6 · Saturday",name:"Full Body Tone",sub:"Light full-body circuit + core",mins:"48–52",blocks:[
+  {label:"Warm-up",mins:5,items:[
+    P("Elliptical, easy","Elliptical",1,"4 min"),
     P("Push-ups","Floor",2,"10 reps")]},
-  {label:"Main work",mins:60,items:[
-    P("Incline barbell press","Incline bench + rack",3,"10",90,"",1),
-    P("Seated cable row","Row station",4,"10–12",75,"",1),
-    P("Arnold press","Dumbbells + bench",3,"10–12",75,"",1),
-    P("Lateral raise ↔ rear-delt cable flye","Dumbbells + trainer",4,"15 + 15",60,"Superset. No rest between the two."),
-    P("Close-grip lat pulldown","High pulley",3,"12",60,"",1),
-    P("Cable curl ↔ triceps pushdown","High pulley",4,"12 + 12",60,"Superset."),
-    P("Assisted dips","Assisted machine",3,"8–10",75,"",1)]},
-  {label:"Core + finish",mins:18,items:[
-    P("Cable woodchop","Functional trainer",3,"12 / side",45),
-    P("Hollow hold","Floor",3,"30 sec",45),
-    P("Easy elliptical","Elliptical",1,"10 min")]}
+  {label:"Main work",mins:30,items:[
+    P("Goblet squat","Kettlebell / dumbbell",3,"15",45,"",0,"squat"),
+    P("Seated cable row","Row station",3,"15",45,"",0,"pullH"),
+    P("Dumbbell reverse lunge","Dumbbells",2,"12 / leg",45,"",0,"lunge"),
+    P("Seated dumbbell shoulder press, light","Dumbbells + bench",2,"12–15",45,"",0,"pressV"),
+    P("Rope triceps pushdown, light","High pulley",2,"15",30,"Toning, not building — keep the weight light.",0,"triceps")]},
+  {label:"Core + cardio finish",mins:13,items:[
+    P("Hollow hold","Floor",2,"30 sec",30,"",0,"core"),
+    P("Side plank","Floor",2,"30 sec / side",30,"",0,"core"),
+    P("Incline walk, fat-burn pace","Treadmill",1,"8 min")]}
 ]},
 
-{id:"d7",dow:0,tag:"Day 7 · Sunday",name:"Conditioning",sub:"Circuits · core · glutes",mins:"75–90",blocks:[
-  {label:"Warm-up",mins:10,items:[
-    P("Skipping rope","Rope",3,"1 min",45),
-    P("Dynamic mobility","Floor",1,"5 min")]},
-  {label:"Circuit A — 4 rounds",mins:22,items:[
-    P("Kettlebell swing","Kettlebell",4,"15",0),
-    P("Step-up","Step platform",4,"10 / leg",0),
-    P("Push-up","Floor",4,"12",0),
-    P("Suspension row","TRX straps",4,"12",60,"60 sec rest after each full round.")]},
-  {label:"Circuit B — 3 rounds",mins:15,items:[
-    P("Cable glute kickback","Functional trainer",3,"15 / side",0),
-    P("Banded hip abduction","Band / cable",3,"20",0),
-    P("Walking lunge","Bodyweight",3,"20 steps",60)]},
-  {label:"Core + finish",mins:25,items:[
-    P("Hanging knee raise","Captain's chair",3,"12",40),
-    P("Side plank","Floor",3,"30 sec / side",40),
-    P("Steady cardio, easy","Bike or treadmill",1,"15–20 min"),
-    P("Full stretch","Floor",1,"10 min")]}
-]}
+{id:"d7",dow:0,tag:"Day 7 · Sunday",name:"Rest",sub:"Full day off — no workout",mins:"0",blocks:[]}
 ];
 
 /* ============================================================
@@ -374,10 +421,12 @@ const PLAN = [
    ============================================================ */
 const KEY = "waterline:v1";
 const OLD_KEY = "glowup:v2";
-let S = {weights:{}, history:{}};
+let S = {weights:{}, history:{}, bodyweight:{}, missed:{}, since:null};
 let sel = PLAN.find(d=>d.dow===new Date().getDay())||PLAN[0];
 let tab = "today";
-const todayKey = ()=> new Date().toISOString().slice(0,10);
+/* Local-date keys (not UTC) so a late-evening session doesn't log under tomorrow. */
+const dateKey = (d)=> d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const todayKey = ()=> dateKey(new Date());
 const exKey = (d,b,i)=> d.id+"-"+b+"-"+i;
 
 /* Works in two places: inside Claude (window.storage) and hosted on the
@@ -396,6 +445,9 @@ async function load(){
   let raw = await STORE.get(KEY);
   if(!raw) raw = await STORE.get(OLD_KEY);  /* carry over the old GlowUp log */
   if(raw){ try{ S = JSON.parse(raw); }catch(e){} }
+  if(!S.bodyweight) S.bodyweight = {};
+  if(!S.missed) S.missed = {};
+  if(!S.since){ S.since = todayKey(); save(); }
   render();
 }
 let saveT;
@@ -430,19 +482,84 @@ function logFor(d){
   if(!S.history[k][d.id]) S.history[k][d.id] = {};
   return S.history[k][d.id];
 }
+/* Attendance model: every scheduled training day (Mon/Tue/Wed/Fri/Sat) counts
+   as trained unless you explicitly mark it missed — you only log the
+   exceptions. Thursday and Sunday are off and don't count either way. */
+const isWorkoutDow = (dow)=> dow!==0 && dow!==4;
 function streak(){
   let n=0, dt=new Date();
+  const since = S.since || todayKey();
   for(;;){
-    const k = dt.toISOString().slice(0,10);
-    const day = S.history[k];
-    const any = day && Object.values(day).some(o=>Object.values(o).some(a=>a.some(Boolean)));
-    if(any) n++;
-    else if(k!==todayKey()) break;
-    else if(n===0 && k===todayKey()){ dt.setDate(dt.getDate()-1); continue; }
+    if(isWorkoutDow(dt.getDay())){
+      if(S.missed[dateKey(dt)]) break;
+      n++;
+    }
+    if(dateKey(dt)<=since) break;
     dt.setDate(dt.getDate()-1);
-    if(n>400) break;
   }
   return n;
+}
+
+/* This week's 5 training days (Mon/Tue/Wed/Fri/Sat), as Date objects. */
+function weekWorkoutDates(){
+  const now = new Date();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - ((now.getDay()+6)%7));
+  return Array.from({length:6},(_, i)=>{ const d=new Date(monday); d.setDate(monday.getDate()+i); return d; })
+    .filter(d=>isWorkoutDow(d.getDay()));
+}
+
+/* ============================================================
+   BODY WEIGHT — the only log meant to happen every time.
+   Logged whenever you feel like it, not tied to a workout day.
+   ============================================================ */
+function renderBw(){
+  const input = document.getElementById("bwInput"), trend = document.getElementById("bwTrend");
+  input.value = S.bodyweight[todayKey()] || "";
+  const dates = Object.keys(S.bodyweight).filter(k=>k!==todayKey() && S.bodyweight[k]).sort();
+  if(!dates.length){ trend.textContent = "no entries yet"; return; }
+  const lastDate = dates[dates.length-1], lastVal = parseFloat(S.bodyweight[lastDate]);
+  const d = new Date(lastDate+"T00:00:00");
+  const when = d.toLocaleDateString(undefined,{month:"short",day:"numeric"});
+  const today = parseFloat(S.bodyweight[todayKey()]);
+  if(!isNaN(today) && !isNaN(lastVal) && today!==lastVal){
+    const diff = (today-lastVal).toFixed(1);
+    trend.textContent = `${diff>0?"+":""}${diff} kg since ${when}`;
+  } else {
+    trend.textContent = `last ${lastVal} kg · ${when}`;
+  }
+}
+document.getElementById("bwInput").oninput = (e)=>{
+  S.bodyweight[todayKey()] = e.target.value;
+  save(); renderBw();
+};
+
+/* ============================================================
+   THIS WEEK — attendance strip. Every box defaults to "trained";
+   tap a past or today box to mark it missed (tap again to undo).
+   That's the only logging this feature asks for.
+   ============================================================ */
+const WK_LETTERS = ["M","T","W","F","S"];
+function renderWeekStrip(){
+  const el = document.getElementById("wkStrip");
+  const todayK = todayKey();
+  el.innerHTML = "";
+  weekWorkoutDates().forEach((dt,i)=>{
+    const k = dateKey(dt);
+    const future = k > todayK;
+    const missed = !!S.missed[k];
+    const label = dt.toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"});
+    const btn = document.createElement("button");
+    btn.className = "wdot"+(future?" future":missed?" missed":" on")+(k===todayK?" today":"");
+    btn.textContent = WK_LETTERS[i];
+    btn.disabled = future;
+    btn.setAttribute("aria-label", future? `${label}: upcoming` : `${label}: ${missed?"marked missed":"trained"} — tap to toggle`);
+    if(!future) btn.onclick = ()=>{
+      if(S.missed[k]) delete S.missed[k]; else S.missed[k] = true;
+      save(); renderWeekStrip(); renderHead();
+    };
+    el.appendChild(btn);
+  });
 }
 
 /* ============================================================
@@ -451,7 +568,7 @@ function streak(){
 const view = document.getElementById("view");
 
 function render(){
-  renderRail(); renderHead();
+  renderRail(); renderHead(); renderBw(); renderWeekStrip();
   if(tab==="today") renderToday();
   else if(tab==="week") renderWeek();
   else renderGear();
@@ -462,7 +579,7 @@ function renderRail(){
   r.innerHTML = "";
   PLAN.forEach(d=>{
     const b = document.createElement("button");
-    b.className = "pill"+(d.id===sel.id?" on":"")+(d.id==="d4"?" rec":"");
+    b.className = "pill"+(d.id===sel.id?" on":"")+(d.blocks.length===0?" rec":"");
     b.textContent = d.tag.split(" · ")[0].replace("Day ","D")+" · "+d.name;
     b.onclick = ()=>{ sel=d; tab="today"; document.querySelectorAll("nav button")
       .forEach(x=>x.classList.toggle("on",x.dataset.tab==="today")); render(); };
@@ -484,19 +601,27 @@ function renderHead(){
   document.getElementById("dayTag").textContent = sel.tag;
   document.getElementById("dayName").textContent = sel.name;
   document.getElementById("daySub").textContent = sel.sub;
+  const restDay = sel.blocks.length===0;
   const {tot,done} = counts(sel);
   const pct = tot? Math.round(done/tot*100):0;
-  document.getElementById("mSets").textContent = done+"/"+tot;
-  document.getElementById("mMins").textContent = sel.mins;
-  document.getElementById("mPct").textContent = pct+"%";
-  document.getElementById("tide").style.height = pct+"%";
+  document.getElementById("mSets").textContent = restDay? "—" : done+"/"+tot;
+  document.getElementById("mMins").textContent = restDay? "off" : sel.mins;
+  document.getElementById("mPct").textContent = restDay? "rest" : pct+"%";
+  document.getElementById("tide").style.height = restDay? "0%" : pct+"%";
   const st = streak();
   document.getElementById("streak").textContent = st? st+" day streak" : "start today";
 }
 
 function renderToday(){
-  const log = logFor(sel);
   view.innerHTML = "";
+  if(sel.blocks.length===0){
+    const c = document.createElement("div");
+    c.className = "callout";
+    c.innerHTML = `<b>${sel.name} day</b>No workout scheduled — full rest. Recovery is when the fat-loss work actually shows up, so don't fill this with extra cardio. If you missed a session earlier this week, mark it in the "This week" strip up top.`;
+    view.appendChild(c);
+    return;
+  }
+  const log = logFor(sel);
   sel.blocks.forEach((b,bi)=>{
     const sec = document.createElement("section");
     sec.className = "block";
@@ -506,15 +631,21 @@ function renderToday(){
       const arr = log[k] || (log[k] = new Array(it.s).fill(false));
       const el = document.createElement("div");
       el.className = "ex"+(arr.every(Boolean)?" done":"");
+      const form = it.form ? FORMS[it.form] : null;
       el.innerHTML =
         `<div class="idx">${String(ii+1).padStart(2,"0")}</div>
          <div class="body">
            <div class="nm">${it.n}</div>
-           <div><span class="gear">${it.g}</span><a class="yt" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodeURIComponent(it.n+" proper form technique")}">&#9654; How to</a></div>
+           <div><span class="gear">${it.g}</span>${form?`<button class="formBtn" type="button">&#9678; Form</button>`:""}<a class="yt" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodeURIComponent(it.n+" proper form technique")}">&#9654; How to</a></div>
            <div class="prescribe"><b>${it.s}</b> × <b>${it.r}</b>${it.rest?` · rest ${it.rest}s`:""}</div>
            ${it.note?`<div class="note">${it.note}</div>`:""}
+           ${form?`<div class="formPanel">${form.svg}<div class="cue">${form.cue}</div></div>`:""}
            <div class="row"><div class="dots"></div></div>
          </div>`;
+      if(form){
+        const btn = el.querySelector(".formBtn"), panel = el.querySelector(".formPanel");
+        btn.onclick = ()=>{ panel.classList.toggle("show"); btn.classList.toggle("on"); };
+      }
       const row = el.querySelector(".row"), dots = el.querySelector(".dots");
       for(let s=0;s<it.s;s++){
         const d = document.createElement("button");
@@ -531,7 +662,7 @@ function renderToday(){
       if(it.w){
         const w = document.createElement("input");
         w.className="wt"; w.type="text"; w.inputMode="decimal";
-        w.placeholder="kg"; w.value = S.weights[k]||"";
+        w.placeholder="kg (optional)"; w.value = S.weights[k]||"";
         w.setAttribute("aria-label","Weight used for "+it.n);
         w.oninput = ()=>{ S.weights[k]=w.value; save(); };
         row.appendChild(w);
@@ -543,9 +674,7 @@ function renderToday(){
 
   const c = document.createElement("div");
   c.className = "callout";
-  c.innerHTML = sel.id==="d4"
-    ? `<b>Today's job is recovery</b>Skip the pre-workout. If you finish feeling like you could do it twice, that was correct — this day is what makes the other six possible.`
-    : `<b>Progression rule</b>Add reps before you add weight. Once you hit the top of the rep range on every set, put 2.5 kg on the bar next week. Log it so you're not guessing.`;
+  c.innerHTML = `<b>Why the reps are high and the weight is light</b>This plan is built to lean you out, not bulk you up. Stay in the prescribed rep range and keep the weight light enough that the last 2–3 reps are genuinely hard — that's enough stimulus to shape without adding size. The fat loss itself happens in the kitchen, in a calorie deficit; the training just decides what shows up underneath.`;
   view.appendChild(c);
 }
 
@@ -558,7 +687,7 @@ function renderWeek(){
     card.innerHTML =
       `<div class="t"><div class="nm">${d.name}</div><div class="dy">${d.tag.split(" · ")[1]}</div></div>
        <div class="sub">${d.sub}</div>
-       <div class="prescribe">${lifts} exercises · ${d.mins} min</div>`;
+       <div class="prescribe">${lifts? `${lifts} exercises · ${d.mins} min` : "Full rest — no workout"}</div>`;
     card.onclick = ()=>{ sel=d; tab="today";
       document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("on",x.dataset.tab==="today"));
       render(); window.scrollTo({top:0,behavior:"smooth"}); };
