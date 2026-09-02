@@ -1,0 +1,1381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Waterline</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Waterline">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#062e2b">
+<style>
+  :root{
+    --abyss:#04211f;
+    --ink:#062e2b;
+    --deep:#005957;
+    --tide:#0d8b81;
+    --foam:#7fe3d2;
+    --sand:#ece5d6;
+    --mute:#7b968f;
+    --amber:#f2a65a;
+    --danger:#e2685c;
+    --line:rgba(236,229,214,.12);
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--abyss);color:var(--sand);font-family:var(--sans);
+    font-size:16px;line-height:1.45;padding-bottom:120px;
+  }
+  .wrap{max-width:640px;margin:0 auto;padding:0 18px}
+  [hidden]{display:none!important}
+
+  /* ---------- shared form controls ---------- */
+  label.fl{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--mute);margin:16px 0 6px}
+  input.fi, select.fi, textarea.fi{
+    width:100%;background:transparent;border:1px solid var(--line);border-radius:8px;
+    color:var(--sand);font-family:var(--sans);font-size:15px;padding:11px 12px;
+  }
+  textarea.fi{min-height:70px;resize:vertical;font-family:var(--sans)}
+  input.fi::placeholder, textarea.fi::placeholder{color:var(--mute)}
+  input.fi:focus, select.fi:focus, textarea.fi:focus{outline:2px solid var(--foam);outline-offset:1px}
+  .btn{display:inline-block;width:100%;background:var(--foam);color:#04211f;border:0;
+    border-radius:10px;padding:13px 16px;font-weight:700;font-size:15px;cursor:pointer;margin-top:18px}
+  .btn:active{opacity:.85}
+  .btn.ghost{background:transparent;color:var(--sand);border:1px solid var(--line)}
+  .btn.sm{width:auto;padding:8px 14px;font-size:13px;margin-top:0}
+  .btn.danger{background:var(--danger);color:#2a0d0a}
+  .errline{color:var(--danger);font-size:12.5px;margin-top:10px;font-family:var(--mono)}
+  .linklike{background:none;border:0;color:var(--foam);font-family:var(--mono);font-size:12px;
+    text-decoration:underline;cursor:pointer;padding:0}
+
+  /* ---------- auth screen ---------- */
+  #authScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 18px}
+  .authCard{max-width:380px;width:100%}
+  .authCard h1{font-size:34px;font-weight:800;letter-spacing:-.045em;text-transform:uppercase;margin:0 0 4px}
+  .authCard h1 em{font-style:normal;color:var(--foam)}
+  .authCard .tag{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--mute);margin-bottom:26px}
+  .authTabs{display:flex;gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:6px}
+  .authTabs button{flex:1;background:transparent;border:0;color:var(--mute);padding:10px;font-family:var(--mono);
+    font-size:11px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+  .authTabs button.on{background:var(--foam);color:#04211f;font-weight:700}
+  .demoNote{margin-top:16px;font-size:11.5px;color:var(--mute);font-family:var(--mono);line-height:1.6;
+    border-left:2px solid var(--foam);padding-left:10px}
+
+  /* ---------- survey screen ---------- */
+  #surveyScreen{min-height:100vh;padding:30px 0 60px}
+  .surveyHead{margin-bottom:6px}
+  .surveyHead h1{font-size:26px;font-weight:800;letter-spacing:-.03em;margin:0}
+  .surveyHead p{color:var(--mute);font-size:13.5px;margin-top:6px}
+  .sq{margin-top:24px}
+  .sq .hint{font-size:12px;color:var(--mute);margin-top:5px;font-style:italic}
+  .radioRow{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+  .radioRow button{background:transparent;border:1px solid var(--line);color:var(--sand);border-radius:99px;
+    padding:9px 14px;font-size:13px;cursor:pointer}
+  .radioRow button.on{background:var(--tide);border-color:var(--tide);color:#04211f;font-weight:700}
+  .photoGrid{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .photoThumb{position:relative;width:64px;height:64px;border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+  .photoThumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .photoThumb button{position:absolute;top:2px;right:2px;background:rgba(4,33,31,.8);color:var(--sand);
+    border:0;border-radius:99px;width:18px;height:18px;font-size:11px;line-height:1;cursor:pointer}
+  .photoAdd{width:64px;height:64px;border-radius:8px;border:1px dashed var(--line);background:transparent;
+    color:var(--mute);font-size:22px;cursor:pointer}
+  .surveyFoot{display:flex;gap:10px;margin-top:30px}
+  .progressDots{display:flex;gap:5px;margin-bottom:20px}
+  .progressDots span{height:3px;flex:1;border-radius:3px;background:var(--line)}
+  .progressDots span.on{background:var(--foam)}
+
+  /* ---------- account bar (inside app) ---------- */
+  .acctBar{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    font-family:var(--mono);font-size:11px;color:var(--mute);padding:10px 0 0}
+  .acctBar b{color:var(--sand)}
+  .acctBar .linklike{color:var(--mute);text-decoration:none;border:1px solid var(--line);border-radius:99px;padding:5px 11px}
+  .acctBar .linklike:hover{color:var(--foam);border-color:var(--foam)}
+
+  /* ---------- header / tide ---------- */
+  header{position:relative;overflow:hidden;background:var(--ink);border-bottom:1px solid var(--line)}
+  #tide{position:absolute;left:0;right:0;bottom:0;height:0%;
+    background:linear-gradient(180deg,var(--deep),#00403f);
+    transition:height .7s cubic-bezier(.4,0,.2,1)}
+  #tide svg{position:absolute;top:-13px;left:0;width:200%;height:14px;display:block;
+    animation:drift 9s linear infinite}
+  @keyframes drift{to{transform:translateX(-50%)}}
+  .hd{position:relative;z-index:2;padding:14px 0 22px}
+  .brand{display:flex;align-items:baseline;justify-content:space-between}
+  h1{margin:0;font-size:30px;font-weight:800;letter-spacing:-.045em;text-transform:uppercase}
+  h1 em{font-style:normal;color:var(--foam)}
+  .streak{font-family:var(--mono);font-size:11px;color:var(--foam);
+    border:1px solid rgba(127,227,210,.35);border-radius:99px;padding:4px 9px;white-space:nowrap}
+  .eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--mute)}
+  .today{margin-top:16px}
+  .today .name{font-size:23px;font-weight:700;letter-spacing:-.02em;margin-top:2px}
+  .today .sub{font-size:13px;color:var(--mute);margin-top:3px}
+  .meter{display:flex;gap:14px;margin-top:14px;font-family:var(--mono);font-size:11px;color:var(--mute)}
+  .meter b{color:var(--sand);font-weight:600}
+
+  /* ---------- day rail ---------- */
+  .rail{display:flex;gap:7px;overflow-x:auto;padding:12px 18px;scrollbar-width:none;
+    background:var(--ink);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+  .rail::-webkit-scrollbar{display:none}
+  .pill{flex:0 0 auto;border:1px solid var(--line);background:transparent;color:var(--mute);
+    border-radius:99px;padding:7px 13px;font-family:var(--mono);font-size:11px;letter-spacing:.06em;
+    text-transform:uppercase;cursor:pointer}
+  .pill.on{background:var(--foam);color:#04211f;border-color:var(--foam);font-weight:600}
+  .pill.rec{border-style:dashed}
+
+  /* ---------- tabs ---------- */
+  nav{display:flex;gap:24px;padding:16px 0 0}
+  nav button{background:none;border:0;padding:0 0 10px;color:var(--mute);cursor:pointer;
+    font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+    border-bottom:2px solid transparent}
+  nav button.on{color:var(--sand);border-bottom-color:var(--foam)}
+
+  /* ---------- blocks ---------- */
+  .block{margin-top:26px}
+  .block-hd{display:flex;align-items:baseline;justify-content:space-between;
+    padding-bottom:8px;border-bottom:1px solid var(--line)}
+  .block-hd h2{margin:0;font-size:12px;font-family:var(--mono);letter-spacing:.18em;
+    text-transform:uppercase;font-weight:600}
+  .block-hd span{font-family:var(--mono);font-size:11px;color:var(--mute)}
+
+  .ex{display:flex;gap:12px;padding:15px 0;border-bottom:1px solid var(--line)}
+  .ex .idx{font-family:var(--mono);font-size:11px;color:var(--mute);padding-top:3px;min-width:20px}
+  .ex .body{flex:1;min-width:0}
+  .ex .nm{font-size:15.5px;font-weight:600;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+  .ex.done .nm{color:var(--mute)}
+  .gear{display:inline-block;margin-top:6px;font-family:var(--mono);font-size:10px;
+    letter-spacing:.08em;text-transform:uppercase;color:var(--foam);
+    border:1px solid rgba(127,227,210,.28);border-radius:3px;padding:2px 6px}
+  .yt{display:inline-block;margin-left:7px;font-family:var(--mono);font-size:10px;
+    letter-spacing:.08em;text-transform:uppercase;color:var(--mute);text-decoration:none;
+    border-bottom:1px solid var(--line);padding-bottom:1px}
+  .yt:hover,.yt:focus-visible{color:var(--foam);border-bottom-color:var(--foam)}
+  .prescribe{font-family:var(--mono);font-size:12px;color:var(--mute);margin-top:8px}
+  .prescribe b{color:var(--sand);font-weight:600}
+  .note{font-size:12.5px;color:var(--mute);margin-top:6px;font-style:italic}
+  .custTag{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--amber);border:1px solid var(--amber);border-radius:3px;padding:1px 5px}
+  .exActions{display:flex;gap:10px;margin-top:6px}
+  .exActions button{background:none;border:0;color:var(--mute);font-family:var(--mono);font-size:10px;
+    letter-spacing:.06em;text-transform:uppercase;text-decoration:underline;cursor:pointer;padding:0}
+  .exActions button:hover{color:var(--foam)}
+  .exActions button.del:hover{color:var(--danger)}
+
+  .row{display:flex;align-items:center;gap:10px;margin-top:11px;flex-wrap:wrap}
+  .dots{display:flex;gap:6px}
+  .dot{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);
+    background:transparent;cursor:pointer;font-family:var(--mono);font-size:11px;color:var(--mute)}
+  .dot.on{background:var(--tide);border-color:var(--tide);color:#04211f;font-weight:700}
+  .wt{width:78px;background:transparent;border:1px solid var(--line);border-radius:8px;
+    color:var(--sand);font-family:var(--mono);font-size:12px;padding:7px 8px}
+  .wt::placeholder{color:var(--mute)}
+  .wt:focus,.dot:focus-visible,.pill:focus-visible,nav button:focus-visible{
+    outline:2px solid var(--foam);outline-offset:2px}
+
+  /* ---------- progressive overload (weight history) ---------- */
+  .wtWrap{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .wtTrend{font-family:var(--mono);font-size:10px;color:var(--mute)}
+  .histBtn{background:none;border:0;color:var(--mute);font-family:var(--mono);font-size:10px;
+    text-decoration:underline;cursor:pointer;padding:0}
+  .histBtn:hover{color:var(--foam)}
+  .histPanel{display:none;flex-basis:100%;margin-top:2px;border:1px solid var(--line);border-radius:8px;
+    padding:8px 10px;font-family:var(--mono);font-size:11px;color:var(--mute)}
+  .histPanel.show{display:block}
+  .histPanel .hrow{display:flex;justify-content:space-between;padding:3px 0}
+  .histPanel .hrow b{color:var(--sand)}
+
+  /* ---------- add exercise form ---------- */
+  .addExBtn{margin-top:14px;background:transparent;border:1px dashed var(--line);color:var(--mute);
+    border-radius:10px;padding:10px 14px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;
+    text-transform:uppercase;cursor:pointer;width:100%}
+  .addExBtn:hover{color:var(--foam);border-color:var(--foam)}
+  .addExForm{border:1px solid var(--line);border-radius:10px;padding:14px;margin-top:10px;
+    background:rgba(127,227,210,.04);display:grid;gap:10px}
+  .addExForm .fr{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .addExForm .actions{display:flex;gap:8px;justify-content:flex-end}
+
+  /* ---------- form picture ---------- */
+  .formBtn{display:inline-block;margin-left:7px;font-family:var(--mono);font-size:10px;
+    letter-spacing:.08em;text-transform:uppercase;color:var(--mute);background:none;
+    border:0;border-bottom:1px solid var(--line);padding:0 0 1px;cursor:pointer}
+  .formBtn:hover,.formBtn:focus-visible,.formBtn.on{color:var(--foam);border-bottom-color:var(--foam)}
+  .formPanel{display:none;gap:14px;align-items:center;margin-top:10px;padding:12px;
+    border:1px solid var(--line);border-radius:10px;background:rgba(127,227,210,.05)}
+  .formPanel.show{display:flex}
+  .fig{width:58px;height:64px;flex:0 0 auto;color:var(--foam)}
+  .fig .hd{fill:currentColor}
+  .fig .im{fill:currentColor;opacity:.3}
+  .fig path,.fig line:not(.grd){stroke:currentColor;stroke-width:5;stroke-linecap:round;
+    stroke-linejoin:round;fill:none}
+  .fig line.grd{stroke:var(--line);stroke-width:2}
+  .formPanel .cue{font-size:12.5px;color:var(--sand);line-height:1.5}
+
+  /* ---------- body weight ---------- */
+  .bw{display:flex;align-items:center;gap:10px;margin-top:14px;font-family:var(--mono);
+    font-size:11px;color:var(--mute);flex-wrap:wrap}
+  .bw input{width:72px;background:transparent;border:1px solid var(--line);border-radius:8px;
+    color:var(--sand);font-family:var(--mono);font-size:12px;padding:6px 8px}
+  .bw input::placeholder{color:var(--mute)}
+  .bw input:focus{outline:2px solid var(--foam);outline-offset:2px}
+  .bw span{color:var(--foam)}
+
+  /* ---------- this week strip ---------- */
+  .wk{display:flex;align-items:center;gap:10px;margin-top:12px;font-family:var(--mono);
+    font-size:11px;color:var(--mute)}
+  .wkdots{display:flex;gap:6px}
+  .wdot{width:26px;height:26px;border-radius:8px;border:1px solid var(--line);background:transparent;
+    color:var(--mute);font-family:var(--mono);font-size:11px;cursor:pointer;padding:0}
+  .wdot.on{background:var(--tide);border-color:var(--tide);color:#04211f;font-weight:700}
+  .wdot.missed{border-color:var(--amber);border-style:dashed;color:var(--amber)}
+  .wdot.future{opacity:.35;cursor:default}
+  .wdot.today{box-shadow:0 0 0 1px var(--foam)}
+  .wdot:focus-visible{outline:2px solid var(--foam);outline-offset:2px}
+
+  /* ---------- gear tab ---------- */
+  .gsec{margin-top:24px}
+  .gsec h3{margin:0 0 10px;font-family:var(--mono);font-size:11px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--foam)}
+  .gitem{display:flex;justify-content:space-between;gap:14px;padding:11px 0;
+    border-bottom:1px solid var(--line);font-size:14.5px}
+  .gitem span{font-family:var(--mono);font-size:11px;color:var(--mute);text-align:right;flex:0 0 42%}
+
+  /* ---------- profile tab ---------- */
+  .pcard{border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:16px}
+  .pcard .lbl{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+  .pcard .val{font-size:16px;font-weight:600;margin-top:3px}
+  .pcard .val.text{font-size:14px;font-weight:400}
+  .pcard .sec{margin-top:14px}
+  .pgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .pphotos{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .pphotos img{width:70px;height:70px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+
+  /* ---------- checkbox row (survey / add-exercise form) ---------- */
+  .checkRow{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--sand)}
+  .checkRow input{width:16px;height:16px}
+
+  /* ---------- week tab ---------- */
+  .wcard{border:1px solid var(--line);border-radius:12px;padding:15px;margin-top:11px;cursor:pointer}
+  .wcard .t{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+  .wcard .nm{font-size:17px;font-weight:700;letter-spacing:-.02em}
+  .wcard .dy{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--foam);text-transform:uppercase}
+  .wcard .sub{font-size:13px;color:var(--mute);margin-top:4px}
+
+  .callout{border-left:2px solid var(--amber);padding:12px 0 12px 14px;margin-top:26px;
+    font-size:13.5px;color:var(--mute)}
+  .callout b{color:var(--amber);font-family:var(--mono);font-size:10px;letter-spacing:.18em;
+    text-transform:uppercase;display:block;margin-bottom:6px}
+
+  /* ---------- rest timer ---------- */
+  #rest{position:fixed;left:0;right:0;bottom:0;background:var(--ink);
+    border-top:1px solid var(--foam);transform:translateY(110%);transition:transform .3s;z-index:40}
+  #rest.up{transform:none}
+  .rin{max-width:640px;margin:0 auto;padding:14px 18px calc(14px + env(safe-area-inset-bottom));
+    display:flex;align-items:center;gap:14px}
+  #rclock{font-family:var(--mono);font-size:28px;font-weight:700;letter-spacing:-.02em;color:var(--foam)}
+  .rlbl{flex:1;font-family:var(--mono);font-size:10px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--mute)}
+  #rest button{background:transparent;border:1px solid var(--line);color:var(--sand);
+    border-radius:99px;padding:8px 14px;font-family:var(--mono);font-size:11px;
+    text-transform:uppercase;letter-spacing:.1em;cursor:pointer}
+
+  .foot{margin:36px 0 10px;font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--mute);text-align:center}
+  .tiny{background:none;border:1px solid var(--line);border-radius:99px;color:var(--mute);
+    font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;
+    padding:5px 11px;margin:10px 4px 0;cursor:pointer}
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     AUTH SCREEN — sign up / login / logout
+     ============================================================ -->
+<div id="authScreen">
+  <div class="authCard">
+    <h1>Water<em>line</em></h1>
+    <div class="tag">Sign in to your training log</div>
+    <div class="authTabs">
+      <button id="tabLogin" class="on" type="button">Log in</button>
+      <button id="tabSignup" type="button">Sign up</button>
+    </div>
+
+    <form id="loginForm">
+      <label class="fl" for="liUser">Username</label>
+      <input class="fi" id="liUser" autocomplete="username" placeholder="e.g. khushi" required>
+      <label class="fl" for="liPass">Password</label>
+      <input class="fi" id="liPass" type="password" autocomplete="current-password" placeholder="••••••••" required>
+      <div class="errline" id="liErr" hidden></div>
+      <button class="btn" type="submit">Log in</button>
+    </form>
+
+    <form id="signupForm" hidden>
+      <label class="fl" for="suUser">Choose a username</label>
+      <input class="fi" id="suUser" autocomplete="username" placeholder="e.g. khushi" required>
+      <label class="fl" for="suPass">Choose a password</label>
+      <input class="fi" id="suPass" type="password" autocomplete="new-password" placeholder="min. 4 characters" required>
+      <div class="errline" id="suErr" hidden></div>
+      <button class="btn" type="submit">Create account</button>
+    </form>
+
+    <div class="demoNote">
+      Demo credentials — username <b>demo</b>, password <b>demo1234</b> — or create your own account.
+      This is a frontend-only demo: accounts and data are stored in your browser's local storage,
+      not on a server.
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     ONBOARDING SURVEY — shown once after first login
+     ============================================================ -->
+<div id="surveyScreen" class="wrap" hidden>
+  <div class="progressDots" id="surveyDots"></div>
+  <div class="surveyHead">
+    <h1>Before we start</h1>
+    <p>A few questions so Waterline can personalize your plan. Takes under a minute.</p>
+  </div>
+  <form id="surveyForm">
+
+    <div class="sq">
+      <label class="fl" for="svCurrentWeight">Current weight (kg)</label>
+      <input class="fi" id="svCurrentWeight" type="number" step="0.1" min="20" max="300" placeholder="e.g. 68" required>
+    </div>
+
+    <div class="sq">
+      <label class="fl" for="svGoalWeight">Goal weight (kg)</label>
+      <input class="fi" id="svGoalWeight" type="number" step="0.1" min="20" max="300" placeholder="e.g. 62">
+      <div class="hint">Your near-term target for this program.</div>
+    </div>
+
+    <div class="sq">
+      <label class="fl" for="svIdealWeight">Ideal weight (kg)</label>
+      <input class="fi" id="svIdealWeight" type="number" step="0.1" min="20" max="300" placeholder="e.g. 58">
+      <div class="hint">Your longer-term, ultimate weight — can be the same as your goal, or a further destination beyond it.</div>
+    </div>
+
+    <div class="sq">
+      <label class="fl">Primary goal</label>
+      <div class="radioRow" id="svGoalRow" data-field="goal">
+        <button type="button" data-v="Fat loss">Fat loss</button>
+        <button type="button" data-v="Muscle gain">Muscle gain</button>
+        <button type="button" data-v="Toning / shape">Toning / shape</button>
+        <button type="button" data-v="General fitness">General fitness</button>
+      </div>
+    </div>
+
+    <div class="sq">
+      <label class="fl">Training days per week</label>
+      <div class="radioRow" id="svDaysRow" data-field="days">
+        <button type="button" data-v="3">3</button>
+        <button type="button" data-v="4">4</button>
+        <button type="button" data-v="5">5</button>
+        <button type="button" data-v="6">6</button>
+      </div>
+    </div>
+
+    <div class="sq">
+      <label class="fl" for="svInjuries">Any injuries or limitations?</label>
+      <textarea class="fi" id="svInjuries" placeholder="e.g. lower back sensitivity, knee injury 2023 — or leave blank"></textarea>
+    </div>
+
+    <div class="sq">
+      <label class="fl">Photos of your gym (equipment / machines)</label>
+      <div class="photoGrid" id="svPhotoGrid">
+        <button type="button" class="photoAdd" id="svPhotoAdd">+</button>
+      </div>
+      <input type="file" id="svPhotoInput" accept="image/*" multiple hidden>
+      <div class="hint">Upload up to 5 photos so we know what's available at your gym. We'll ask you to tag equipment from a checklist too — no automatic image recognition in this demo.</div>
+    </div>
+
+    <div class="sq">
+      <label class="fl" for="svComments">Anything else you want to add?</label>
+      <textarea class="fi" id="svComments" placeholder="Optional — preferences, schedule constraints, etc."></textarea>
+    </div>
+
+    <div class="surveyFoot">
+      <button class="btn" type="submit">Save & continue</button>
+    </div>
+  </form>
+</div>
+
+<!-- ============================================================
+     MAIN APP
+     ============================================================ -->
+<div id="appScreen" hidden>
+
+<header>
+  <div id="tide">
+    <svg viewBox="0 0 1200 14" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M0 8 Q 75 0 150 8 T 300 8 T 450 8 T 600 8 T 750 8 T 900 8 T 1050 8 T 1200 8 V14 H0Z" fill="#005957"/>
+    </svg>
+  </div>
+  <div class="hd wrap">
+    <div class="acctBar">
+      <div>Logged in as <b id="acctName">—</b></div>
+      <button class="linklike" id="bLogout" type="button">Log out</button>
+    </div>
+    <div class="brand">
+      <h1>Water<em>line</em></h1>
+      <div class="streak" id="streak">— day streak</div>
+    </div>
+    <div class="today">
+      <div class="eyebrow" id="dayTag">Day 1</div>
+      <div class="name" id="dayName">—</div>
+      <div class="sub" id="daySub">—</div>
+    </div>
+    <div class="meter">
+      <div><b id="mSets">0/0</b> sets</div>
+      <div><b id="mMins">—</b> min</div>
+      <div><b id="mPct">0%</b> done</div>
+    </div>
+    <div class="bw">
+      <label for="bwInput">Body weight</label>
+      <input id="bwInput" type="text" inputmode="decimal" placeholder="kg today" aria-label="Log today's body weight in kg">
+      <span id="bwTrend"></span>
+    </div>
+    <div class="wk">
+      <label>This week</label>
+      <div class="wkdots" id="wkStrip"></div>
+    </div>
+  </div>
+</header>
+
+<div class="rail" id="rail"></div>
+
+<div class="wrap">
+  <nav>
+    <button data-tab="today" class="on">Today</button>
+    <button data-tab="week">Week</button>
+    <button data-tab="gear">Gear</button>
+    <button data-tab="profile">Profile</button>
+  </nav>
+  <main id="view"></main>
+  <div class="foot">
+    Bodyweight in, reps up. That's the whole log.<br>
+    <button id="bExp" class="tiny">Back up</button>
+    <button id="bImp" class="tiny">Restore</button>
+  </div>
+</div>
+
+<div id="rest">
+  <div class="rin">
+    <div id="rclock">0:00</div>
+    <div class="rlbl">Rest</div>
+    <button id="rAdd">+30s</button>
+    <button id="rSkip">Skip</button>
+  </div>
+</div>
+
+</div><!-- /#appScreen -->
+
+<script>
+/* ============================================================
+   EQUIPMENT — read off the college gym photos
+   ============================================================ */
+const GEAR = [
+  ["Free weights", [
+    ["Olympic barbells + plates", "squat rack & bench"],
+    ["Hex dumbbells", "full rack, light → heavy"],
+    ["Kettlebell", "swings, goblet work"],
+    ["Flat / incline / decline benches", "press + hip thrust"],
+    ["Squat rack", "squats, RDL, hip thrust"],
+    ["Step platforms", "step-ups, calf raises"]
+  ]],
+  ["Cables & selectorised", [
+    ["Dual-column functional trainer", "crossovers, kickbacks, face pulls"],
+    ["High pulley + rope / bar", "pulldowns, pushdowns, crunches"],
+    ["Seated row station", "mid-back"],
+    ["SportsArt chest press", "machine pressing"],
+    ["SportsArt leg extension / leg curl", "quad + hamstring isolation"],
+    ["Seated leg press", "main quad + glute driver"],
+    ["Plate-loaded chest / incline press", "heavy pressing, safe alone"],
+    ["Assisted pull-up & dip machine", "your pull-up progression"],
+    ["Captain's chair", "hanging knee raises"],
+    ["Wall pull-up bar", "dead hangs, scap pulls"],
+    ["Suspension straps (TRX-style)", "rows, core"]
+  ]],
+  ["Cardio & recovery", [
+    ["Treadmills", "incline walks, warm-ups"],
+    ["Cross trainer / elliptical", "low-impact cardio"],
+    ["Upright bike + spin bike", "warm-up, zone 2"],
+    ["Foam roller", "post-session"],
+    ["Skipping rope", "conditioning finishers"]
+  ]]
+];
+
+/* ============================================================
+   FORM PICTURES — minimalist correct-position diagrams
+   ============================================================ */
+const FORMS = {
+  squat:{cue:"Chest tall, hips back and down, knees track over the toes.",
+    svg:'<svg viewBox="0 0 100 110" class="fig"><circle class="hd" cx="52" cy="18" r="8"/><path d="M52 26 L49 54 M49 54 L34 70 L38 100 M49 54 L64 70 L60 100 M52 30 L74 40"/><line class="grd" x1="8" y1="102" x2="92" y2="102"/></svg>'},
+  hinge:{cue:"Soft knees, push the hips back, flat back, bar stays close to the legs.",
+    svg:'<svg viewBox="0 0 100 110" class="fig"><circle class="hd" cx="54" cy="16" r="8"/><path d="M54 24 L40 50 M40 50 L37 78 L36 100 M40 50 L44 78 L45 100 M54 28 L50 64"/><line x1="40" y1="64" x2="62" y2="64"/><line class="grd" x1="8" y1="102" x2="92" y2="102"/></svg>'},
+  bridge:{cue:"Chin tucked, drive through the heels, pause and squeeze at the top.",
+    svg:'<svg viewBox="0 0 100 110" class="fig"><circle class="hd" cx="14" cy="76" r="8"/><path d="M20 78 L52 66 M52 66 L68 88 M68 88 L80 98"/><rect class="im" x="2" y="82" width="16" height="6"/><line class="grd" x1="8" y1="102" x2="92" y2="102"/></svg>'},
+  lunge:{cue:"Front knee stacks over the ankle, torso stays upright, step under control.",
+    svg:'<svg viewBox="0 0 100 110" class="fig"><circle class="hd" cx="50" cy="16" r="8"/><path d="M50 24 L50 52 M50 52 L66 64 L64 100 M50 52 L32 70 L26 100 M50 28 L38 20 M50 28 L64 36"/><line class="grd" x1="8" y1="102" x2="92" y2="102"/></svg>'},
+  pressH:{cue:"Shoulder blades pinned, feet planted, bar path stays straight over the chest.",
+    svg:'<svg viewBox="0 0 100 110" class="fig"><circle class="hd" cx="16" cy="58" r="8"/><path d="M24 58 L60 58 M60 58 L68 78 L64 100 M36 58 L36 22"/><line x1="26" y1="22" x2="46" y2="22"/><line class="grd" x1="6" y1="66" x2="72" y2="66"/></svg>'},
+  pressV:{cue:"Ribs down, core braced, press straight overhead — not out in front.",
+    svg:'<svg viewBox="0 0 100 110" class="fig"><circle class="hd" cx="50" cy="16" r="8"/><path d="M50 24 L50 58 M50 58 L46 100 M50 58 L54 100 M50 28 L66 10 M50 28 L34 10"/><line x1="34" y1="10" x2="66" y2="10"/><line class="grd" x1="8" y1="102" x2="92" y2="102"/></svg>'},
+  pullV:{cue:"Pull with the elbows, not the hands. Chest up, lead down to the collarbone.",
+    svg:'<svg viewBox="0 0 100 110" class="fig"><circle class="hd" cx="50" cy="16" r="8"/><path d="M50 24 L50 56 M50 56 L40 76 L40 100 M50 56 L60 76 L60 100 M50 28 L70 18 L56 40 M50 28 L30 18 L44 40"/><line x1="30" y1="18" x2="70" y2="18"/><line class="grd" x1="8" y1="102" x2="92" y2="102"/></svg>'},
+  pullH:{cue:"Flat back, ribs down, drive the elbow back past the torso.",
+    svg:'<svg viewBox="0 0 100 110" class="fig"><circle class="hd" cx="56" cy="18" r="8"/><path d="M56 25 L42 52 M42 52 L39 100 M56 30 L70 38 L60 54 M60 54 L78 60"/><line class="grd" x1="8" y1="102" x2="92" y2="102"/></svg>'},
+  curl:{cue:"Elbow pinned to your side, curl slow, no swinging the torso.",
+    svg:'<svg viewBox="0 0 100 110" class="fig"><circle class="hd" cx="50" cy="16" r="8"/><path d="M50 24 L50 58 M50 58 L46 100 M50 58 L54 100 M50 28 L60 50 L52 32"/><line class="grd" x1="8" y1="102" x2="92" y2="102"/></svg>'},
+  triceps:{cue:"Elbow stays high and still, only the forearm moves.",
+    svg:'<svg viewBox="0 0 100 110" class="fig"><circle class="hd" cx="50" cy="16" r="8"/><path d="M50 24 L48 58 M48 58 L44 100 M48 58 L52 100 M50 28 L58 34 L58 56"/><line class="grd" x1="8" y1="102" x2="92" y2="102"/></svg>'},
+  legIso:{cue:"Controlled tempo, no locking out hard at the top.",
+    svg:'<svg viewBox="0 0 100 110" class="fig"><circle class="hd" cx="28" cy="18" r="8"/><path d="M28 26 L30 60 M30 60 L60 60 L78 45"/><rect class="im" x="76" y="28" width="6" height="32"/><line class="grd" x1="8" y1="66" x2="92" y2="66"/></svg>'},
+  core:{cue:"Ribs pulled down, glutes squeezed, no arch in the lower back.",
+    svg:'<svg viewBox="0 0 100 110" class="fig"><circle class="hd" cx="15" cy="55" r="7"/><path d="M21 55 L75 70 M21 55 L21 76 M75 70 L90 70"/><line class="grd" x1="6" y1="80" x2="94" y2="80"/></svg>'},
+  raise:{cue:"Light weight, elbows lead the movement, no swinging or shrugging.",
+    svg:'<svg viewBox="0 0 100 110" class="fig"><circle class="hd" cx="50" cy="16" r="8"/><path d="M50 24 L50 58 M50 58 L46 100 M50 58 L54 100 M50 28 L78 26 M50 28 L22 26"/><line class="grd" x1="8" y1="102" x2="92" y2="102"/></svg>'},
+  swing:{cue:"Power comes from the hip snap, not the arms or the low back.",
+    svg:'<svg viewBox="0 0 100 110" class="fig"><circle class="hd" cx="52" cy="18" r="8"/><path d="M52 26 L42 52 M42 52 L36 80 L38 100 M42 52 L50 80 L52 100 M52 30 L70 55"/><circle class="im" cx="74" cy="58" r="5"/><line class="grd" x1="8" y1="102" x2="92" y2="102"/></svg>'},
+  calf:{cue:"Full stretch at the bottom, pause at the top of every rep.",
+    svg:'<svg viewBox="0 0 100 110" class="fig"><circle class="hd" cx="50" cy="14" r="8"/><path d="M50 22 L50 55 M50 55 L47 95 M50 55 L53 95"/><line x1="44" y1="100" x2="52" y2="104"/><line x1="54" y1="100" x2="62" y2="104"/><line class="grd" x1="8" y1="102" x2="92" y2="102"/></svg>'},
+  custom:{cue:"Follow the coaching cues you know for this movement, and keep it controlled.",
+    svg:'<svg viewBox="0 0 100 110" class="fig"><circle class="hd" cx="50" cy="18" r="8"/><path d="M50 26 L50 60 M50 60 L38 100 M50 60 L62 100 M50 30 L70 44 M50 30 L30 44"/><line class="grd" x1="8" y1="102" x2="92" y2="102"/></svg>'}
+};
+
+/* ============================================================
+   THE PLAN — 6 training days (Mon–Sat), Sunday fully off.
+   ============================================================ */
+const P = (n,g,s,r,rest,note,w,form)=>({n,g,s,r,rest:rest||0,note:note||"",w:!!w,form:form||null});
+
+const PLAN = [
+{id:"d1",dow:1,tag:"Day 1 · Monday",name:"Glutes & Legs",sub:"Shape · light-moderate weight, high reps",mins:"50–55",blocks:[
+  {label:"Warm-up",mins:5,items:[
+    P("Incline treadmill walk","Treadmill",1,"4 min"),
+    P("Glute bridges + leg swings","Floor",2,"15 reps")]},
+  {label:"Main work",mins:35,items:[
+    P("Goblet squat","Kettlebell / dumbbell",3,"15",45,"Light weight. This is a shaping rep range, not a max-effort one.",1,"squat"),
+    P("Barbell hip thrust","Barbell + flat bench",3,"15",60,"Chin tucked, squeeze hard at the top — this is the main glute builder.",1,"bridge"),
+    P("Dumbbell reverse lunge","Dumbbells",3,"12 / leg",45,"",0,"lunge"),
+    P("Cable glute kickback","Functional trainer",3,"15 / side",30,"",0,"hinge"),
+    P("Seated leg press — feet high & wide","Leg press",2,"15",45,"Glute-biased foot placement.",0,"legIso")]},
+  {label:"Core + cardio finish",mins:12,items:[
+    P("Hanging knee raise","Captain's chair",2,"15",30,"",0,"core"),
+    P("Incline walk, fat-burn pace","Treadmill",1,"8 min")]}
+]},
+{id:"d2",dow:2,tag:"Day 2 · Tuesday",name:"Upper Tone + Core",sub:"Light weight, high reps — no bulk work",mins:"45–50",blocks:[
+  {label:"Warm-up",mins:5,items:[
+    P("Cross trainer, easy","Elliptical",1,"4 min"),
+    P("Band pull-aparts","Floor",2,"15 reps")]},
+  {label:"Main work",mins:30,items:[
+    P("Seated dumbbell shoulder press","Dumbbells + bench",3,"12–15",45,"Light weight — shoulders and posture, not size.",0,"pressV"),
+    P("Seated cable row","Row station",3,"15",45,"",0,"pullH"),
+    P("Incline dumbbell press, light","Incline bench",3,"12–15",45,"",0,"pressH"),
+    P("Wide-grip lat pulldown ↔ rope triceps pushdown","High pulley",3,"15 + 15",30,"Superset. No rest between the two — keep moving.",0,"pullV"),
+    P("Dumbbell lateral raise ↔ rear-delt cable flye","Dumbbells + trainer",3,"15 + 15",30,"Superset. Very light — this is for shape, not delts of steel.",0,"raise")]},
+  {label:"Core + cardio finish",mins:12,items:[
+    P("Kneeling cable crunch","High pulley",2,"15",30,"",0,"core"),
+    P("Cable woodchop","Functional trainer",2,"12 / side",30,"",0,"core"),
+    P("Bike, easy spin","Upright bike",1,"6 min")]}
+]},
+{id:"d3",dow:3,tag:"Day 3 · Wednesday",name:"Full Body Burn",sub:"Circuit style — this is your calorie-burn day",mins:"46–50",blocks:[
+  {label:"Warm-up",mins:5,items:[
+    P("Skipping rope","Rope",2,"1 min",30),
+    P("Dynamic mobility","Floor",1,"3 min")]},
+  {label:"Circuit A — 3 rounds, minimal rest",mins:15,items:[
+    P("Kettlebell swing","Kettlebell",3,"15",0,"",0,"swing"),
+    P("Push-up","Floor",3,"12",0,"",0,"pressH"),
+    P("Walking lunge","Bodyweight",3,"20 steps",0,"",0,"lunge"),
+    P("Step-up","Step platform",3,"10 / leg",45,"45 sec rest after each full round, not between exercises.",0,"lunge")]},
+  {label:"Circuit B — 2 rounds",mins:12,items:[
+    P("Suspension row","TRX straps",2,"12",0,"",0,"pullH"),
+    P("Banded hip abduction","Band / cable",2,"20",0,"",0,"raise"),
+    P("Cable woodchop","Functional trainer",2,"12 / side",45,"",0,"core")]},
+  {label:"Core + cardio finish",mins:15,items:[
+    P("Plank","Floor",2,"40 sec",30,"",0,"core"),
+    P("Steady cardio, moderate pace","Bike or treadmill",1,"10 min")]}
+]},
+{id:"d4",dow:4,tag:"Day 4 · Thursday",name:"Core & Cardio",sub:"Flat-stomach focus + steady state — your lighter day",mins:"46–50",blocks:[
+  {label:"Warm-up",mins:5,items:[
+    P("Elliptical, easy","Elliptical",1,"4 min"),
+    P("Dynamic mobility","Floor",1,"3 min")]},
+  {label:"Core circuit — 2 rounds",mins:20,items:[
+    P("Plank","Floor",2,"40 sec",30,"",0,"core"),
+    P("Hanging knee raise","Captain's chair",2,"15",30,"",0,"core"),
+    P("Kneeling cable crunch","High pulley",2,"15",30,"",0,"core"),
+    P("Side plank","Floor",2,"30 sec / side",30,"",0,"core"),
+    P("Cable woodchop","Functional trainer",2,"12 / side",30,"",0,"core")]},
+  {label:"Cardio finish",mins:20,items:[
+    P("Steady cardio, moderate pace","Bike or treadmill",1,"18 min","","Keep it conversational — this is a fat-burn pace, not a race.")]}
+]},
+{id:"d5",dow:5,tag:"Day 5 · Friday",name:"Glutes & Legs",sub:"Volume · the other weekly glute session",mins:"52–56",blocks:[
+  {label:"Warm-up",mins:5,items:[
+    P("Upright bike","Upright bike",1,"4 min"),
+    P("Banded glute activation","Floor",2,"15 reps")]},
+  {label:"Main work",mins:38,items:[
+    P("Barbell hip thrust","Barbell + flat bench",3,"15",60,"Chin tucked, pause 1 sec at the top.",1,"bridge"),
+    P("Bulgarian split squat","Dumbbells + bench",3,"12 / leg",60,"The hardest one here. Keep it light and controlled.",0,"lunge"),
+    P("Cable glute kickback","Functional trainer",3,"15 / side",30,"",0,"hinge"),
+    P("Romanian deadlift, light","Barbell",3,"12",60,"Push hips back, feel the hamstring stretch — not a heavy pull.",1,"hinge"),
+    P("Lying leg curl","SportsArt curl",2,"15",30,"",0,"legIso"),
+    P("Calf raise","Step platform",2,"20",30,"",0,"calf")]},
+  {label:"Finish",mins:10,items:[
+    P("Kettlebell swing","Kettlebell",2,"15",30,"",0,"swing"),
+    P("Easy cycle","Spin bike",1,"6 min")]}
+]},
+{id:"d6",dow:6,tag:"Day 6 · Saturday",name:"Full Body Tone",sub:"Light full-body circuit + core",mins:"48–52",blocks:[
+  {label:"Warm-up",mins:5,items:[
+    P("Elliptical, easy","Elliptical",1,"4 min"),
+    P("Push-ups","Floor",2,"10 reps")]},
+  {label:"Main work",mins:30,items:[
+    P("Goblet squat","Kettlebell / dumbbell",3,"15",45,"",0,"squat"),
+    P("Seated cable row","Row station",3,"15",45,"",0,"pullH"),
+    P("Dumbbell reverse lunge","Dumbbells",2,"12 / leg",45,"",0,"lunge"),
+    P("Seated dumbbell shoulder press, light","Dumbbells + bench",2,"12–15",45,"",0,"pressV"),
+    P("Rope triceps pushdown, light","High pulley",2,"15",30,"Toning, not building — keep the weight light.",0,"triceps")]},
+  {label:"Core + cardio finish",mins:13,items:[
+    P("Hollow hold","Floor",2,"30 sec",30,"",0,"core"),
+    P("Side plank","Floor",2,"30 sec / side",30,"",0,"core"),
+    P("Incline walk, fat-burn pace","Treadmill",1,"8 min")]}
+]},
+{id:"d7",dow:0,tag:"Day 7 · Sunday",name:"Rest",sub:"Full day off — no workout",mins:"0",blocks:[]}
+];
+
+/* ============================================================
+   AUTH — frontend-only demo accounts (localStorage).
+   NOTE: this is NOT production-grade security. Passwords are
+   hashed with SHA-256 client-side only so we don't store them
+   in plaintext, but there is no server, no salting per environment
+   standards, and no protection against someone reading the
+   browser's localStorage directly. Good enough for a demo; do not
+   reuse a real password here.
+   ============================================================ */
+const USERS_KEY = "waterline:users";
+const SESSION_KEY = "waterline:session";
+const DEMO_USER = "demo", DEMO_PASS = "demo1234";
+
+async function sha256(str){
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+function getUsers(){ try{ return JSON.parse(localStorage.getItem(USERS_KEY)||"{}"); }catch(e){ return {}; } }
+function saveUsers(u){ localStorage.setItem(USERS_KEY, JSON.stringify(u)); }
+async function ensureDemoUser(){
+  const users = getUsers();
+  if(!users[DEMO_USER]){
+    users[DEMO_USER] = { pass: await sha256(DEMO_PASS), createdAt: Date.now() };
+    saveUsers(users);
+  }
+}
+function getSession(){ return localStorage.getItem(SESSION_KEY) || null; }
+function setSession(username){ localStorage.setItem(SESSION_KEY, username); }
+function clearSession(){ localStorage.removeItem(SESSION_KEY); }
+
+async function doSignup(username, password){
+  username = username.trim().toLowerCase();
+  if(username.length < 2) return "Username must be at least 2 characters.";
+  if(password.length < 4) return "Password must be at least 4 characters.";
+  const users = getUsers();
+  if(users[username]) return "That username is already taken.";
+  users[username] = { pass: await sha256(password), createdAt: Date.now() };
+  saveUsers(users);
+  setSession(username);
+  return null;
+}
+async function doLogin(username, password){
+  username = username.trim().toLowerCase();
+  const users = getUsers();
+  const rec = users[username];
+  if(!rec) return "No account with that username.";
+  const hash = await sha256(password);
+  if(hash !== rec.pass) return "Incorrect password.";
+  setSession(username);
+  return null;
+}
+function doLogout(){ clearSession(); location.reload(); }
+
+/* ============================================================
+   PER-USER APP STATE
+   ============================================================ */
+let CURRENT_USER = null;
+function dataKey(u){ return "waterline:data:" + u; }
+let S = { weightLog:{}, history:{}, bodyweight:{}, missed:{}, since:null, survey:null, customExercises:{} };
+let sel = PLAN.find(d=>d.dow===new Date().getDay())||PLAN[0];
+let tab = "today";
+
+const dateKey = (d)=> d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const todayKey = ()=> dateKey(new Date());
+const exKey = (d,b,i)=> d.id+"-"+b+"-"+i;
+
+function loadUserData(){
+  let raw = null;
+  try{ raw = localStorage.getItem(dataKey(CURRENT_USER)); }catch(e){}
+  if(raw){ try{ S = JSON.parse(raw); }catch(e){} }
+  if(!S.bodyweight) S.bodyweight = {};
+  if(!S.missed) S.missed = {};
+  if(!S.customExercises) S.customExercises = {};
+  if(!S.survey) S.survey = null;
+  if(!S.weightLog) S.weightLog = {};
+  /* Migrate the old single-value weight field (pre progressive-overload
+     tracking) into a dated log so existing users don't lose their last entry. */
+  if(S.weights){
+    const seedDate = S.since || todayKey();
+    Object.keys(S.weights).forEach(k=>{
+      if(!S.weightLog[k]) S.weightLog[k] = {};
+      if(!Object.keys(S.weightLog[k]).length && S.weights[k]){
+        S.weightLog[k][seedDate] = S.weights[k];
+      }
+    });
+    delete S.weights;
+  }
+  if(!S.since){ S.since = todayKey(); }
+  saveUserData();
+}
+
+/* ============================================================
+   PROGRESSIVE OVERLOAD — weight logged per date per exercise,
+   so you can see how the load you're using changes week to week,
+   not just the single most recent value.
+   ============================================================ */
+function weightEntries(key){
+  return S.weightLog[key] || (S.weightLog[key] = {});
+}
+function getWeightToday(key){
+  return weightEntries(key)[todayKey()] || "";
+}
+function setWeightToday(key, val){
+  const entries = weightEntries(key);
+  if(val){ entries[todayKey()] = val; } else { delete entries[todayKey()]; }
+  saveUserData();
+}
+function weightHistory(key){
+  const entries = weightEntries(key);
+  return Object.keys(entries).sort().reverse().map(d=>({date:d, val:entries[d]}));
+}
+function weightTrendText(key){
+  const hist = weightHistory(key).filter(h=>h.date!==todayKey());
+  if(!hist.length) return "no history yet";
+  const last = hist[0];
+  const today = parseFloat(getWeightToday(key));
+  const prev = parseFloat(last.val);
+  const when = new Date(last.date+"T00:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"});
+  if(!isNaN(today) && !isNaN(prev) && today!==prev){
+    const diff = (today-prev).toFixed(1);
+    return `${diff>0?"+":""}${diff}kg since ${when}`;
+  }
+  return `last ${last.val}kg · ${when}`;
+}
+function buildWeightWidget(key, label){
+  const wrap = document.createElement("div");
+  wrap.className = "wtWrap";
+  const w = document.createElement("input");
+  w.className="wt"; w.type="text"; w.inputMode="decimal";
+  w.placeholder="kg (optional)"; w.value = getWeightToday(key);
+  w.setAttribute("aria-label","Weight used for "+label);
+  const trend = document.createElement("span");
+  trend.className = "wtTrend"; trend.textContent = weightTrendText(key);
+  w.oninput = ()=>{ setWeightToday(key, w.value); trend.textContent = weightTrendText(key); refreshHistPanel(); };
+  const histBtn = document.createElement("button");
+  histBtn.type="button"; histBtn.className="histBtn"; histBtn.textContent="History";
+  const panel = document.createElement("div");
+  panel.className = "histPanel";
+  function refreshHistPanel(){
+    const hist = weightHistory(key);
+    panel.innerHTML = hist.length
+      ? hist.slice(0,10).map(h=>`<div class="hrow"><span>${new Date(h.date+"T00:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"})}</span><b>${h.val} kg</b></div>`).join("")
+      : `<div class="hrow"><span>No entries logged yet</span></div>`;
+  }
+  refreshHistPanel();
+  histBtn.onclick = ()=>{ panel.classList.toggle("show"); };
+  wrap.appendChild(w); wrap.appendChild(trend); wrap.appendChild(histBtn); wrap.appendChild(panel);
+  return wrap;
+}
+let saveT;
+function saveUserData(){
+  clearTimeout(saveT);
+  saveT = setTimeout(()=>{
+    try{ localStorage.setItem(dataKey(CURRENT_USER), JSON.stringify(S)); }catch(e){}
+  },300);
+}
+
+/* Back up / restore */
+function exportData(){
+  const blob = new Blob([JSON.stringify(S)],{type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "waterline-backup-"+CURRENT_USER+"-"+todayKey()+".json";
+  a.click(); URL.revokeObjectURL(a.href);
+}
+function importData(){
+  const f = document.createElement("input");
+  f.type="file"; f.accept="application/json";
+  f.onchange = ()=>{
+    const file = f.files[0]; if(!file) return;
+    const rd = new FileReader();
+    rd.onload = ()=>{ try{ S = JSON.parse(rd.result); saveUserData(); render(); }
+      catch(e){ alert("That file isn't a Waterline backup."); } };
+    rd.readAsText(file);
+  };
+  f.click();
+}
+function logFor(d){
+  const k = todayKey();
+  if(!S.history[k]) S.history[k] = {};
+  if(!S.history[k][d.id]) S.history[k][d.id] = {};
+  return S.history[k][d.id];
+}
+const isWorkoutDow = (dow)=> dow!==0;
+function streak(){
+  let n=0, dt=new Date();
+  const since = S.since || todayKey();
+  for(;;){
+    if(isWorkoutDow(dt.getDay())){
+      if(S.missed[dateKey(dt)]) break;
+      n++;
+    }
+    if(dateKey(dt)<=since) break;
+    dt.setDate(dt.getDate()-1);
+  }
+  return n;
+}
+function weekWorkoutDates(){
+  const now = new Date();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - ((now.getDay()+6)%7));
+  return Array.from({length:6},(_, i)=>{ const d=new Date(monday); d.setDate(monday.getDate()+i); return d; })
+    .filter(d=>isWorkoutDow(d.getDay()));
+}
+
+/* ============================================================
+   CRUD — custom exercises (Create / Read / Update / Delete)
+   on top of the built-in program. Read-only program items can
+   still have their sets/weight logged (that's the day-to-day
+   "update" of your training log); custom exercises can be fully
+   created, edited, and deleted.
+   ============================================================ */
+function customListFor(dayId, blockIdx){
+  const k = dayId+"-"+blockIdx;
+  if(!S.customExercises[k]) S.customExercises[k] = [];
+  return S.customExercises[k];
+}
+function addCustomExercise(dayId, blockIdx, ex){
+  customListFor(dayId, blockIdx).push(ex);
+  saveUserData();
+}
+function updateCustomExercise(dayId, blockIdx, idx, patch){
+  const list = customListFor(dayId, blockIdx);
+  if(list[idx]) Object.assign(list[idx], patch);
+  saveUserData();
+}
+function deleteCustomExercise(dayId, blockIdx, idx){
+  const list = customListFor(dayId, blockIdx);
+  list.splice(idx,1);
+  saveUserData();
+}
+
+/* ============================================================
+   BODY WEIGHT
+   ============================================================ */
+function renderBw(){
+  const input = document.getElementById("bwInput"), trend = document.getElementById("bwTrend");
+  input.value = S.bodyweight[todayKey()] || "";
+  const dates = Object.keys(S.bodyweight).filter(k=>k!==todayKey() && S.bodyweight[k]).sort();
+  if(!dates.length){ trend.textContent = "no entries yet"; return; }
+  const lastDate = dates[dates.length-1], lastVal = parseFloat(S.bodyweight[lastDate]);
+  const d = new Date(lastDate+"T00:00:00");
+  const when = d.toLocaleDateString(undefined,{month:"short",day:"numeric"});
+  const today = parseFloat(S.bodyweight[todayKey()]);
+  if(!isNaN(today) && !isNaN(lastVal) && today!==lastVal){
+    const diff = (today-lastVal).toFixed(1);
+    trend.textContent = `${diff>0?"+":""}${diff} kg since ${when}`;
+  } else {
+    trend.textContent = `last ${lastVal} kg · ${when}`;
+  }
+}
+document.getElementById("bwInput").oninput = (e)=>{
+  S.bodyweight[todayKey()] = e.target.value;
+  saveUserData(); renderBw();
+};
+
+/* ============================================================
+   THIS WEEK — attendance strip
+   ============================================================ */
+const WK_LETTERS = ["M","T","W","T","F","S"];
+function renderWeekStrip(){
+  const el = document.getElementById("wkStrip");
+  const todayK = todayKey();
+  el.innerHTML = "";
+  weekWorkoutDates().forEach((dt,i)=>{
+    const k = dateKey(dt);
+    const future = k > todayK;
+    const missed = !!S.missed[k];
+    const label = dt.toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"});
+    const btn = document.createElement("button");
+    btn.className = "wdot"+(future?" future":missed?" missed":" on")+(k===todayK?" today":"");
+    btn.textContent = WK_LETTERS[i];
+    btn.disabled = future;
+    btn.setAttribute("aria-label", future? `${label}: upcoming` : `${label}: ${missed?"marked missed":"trained"} — tap to toggle`);
+    if(!future) btn.onclick = ()=>{
+      if(S.missed[k]) delete S.missed[k]; else S.missed[k] = true;
+      saveUserData(); renderWeekStrip(); renderHead();
+    };
+    el.appendChild(btn);
+  });
+}
+
+/* ============================================================
+   RENDER — main app
+   ============================================================ */
+const view = document.getElementById("view");
+
+function render(){
+  document.getElementById("acctName").textContent = CURRENT_USER;
+  renderRail(); renderHead(); renderBw(); renderWeekStrip();
+  if(tab==="today") renderToday();
+  else if(tab==="week") renderWeek();
+  else if(tab==="gear") renderGear();
+  else renderProfile();
+}
+
+function renderRail(){
+  const r = document.getElementById("rail");
+  r.innerHTML = "";
+  PLAN.forEach(d=>{
+    const b = document.createElement("button");
+    b.className = "pill"+(d.id===sel.id?" on":"")+(d.blocks.length===0?" rec":"");
+    b.textContent = d.tag.split(" · ")[0].replace("Day ","D")+" · "+d.name;
+    b.onclick = ()=>{ sel=d; tab="today"; document.querySelectorAll("nav button")
+      .forEach(x=>x.classList.toggle("on",x.dataset.tab==="today")); render(); };
+    r.appendChild(b);
+  });
+}
+
+function counts(d){
+  const log = logFor(d); let tot=0, done=0;
+  d.blocks.forEach((b,bi)=>{
+    b.items.forEach((it,ii)=>{
+      tot += it.s;
+      const a = log[exKey(d,bi,ii)]||[];
+      done += a.filter(Boolean).length;
+    });
+    customListFor(d.id,bi).forEach((it,ci)=>{
+      tot += it.s;
+      const a = log["c"+bi+"-"+ci]||[];
+      done += a.filter(Boolean).length;
+    });
+  });
+  return {tot,done};
+}
+
+function renderHead(){
+  document.getElementById("dayTag").textContent = sel.tag;
+  document.getElementById("dayName").textContent = sel.name;
+  document.getElementById("daySub").textContent = sel.sub;
+  const restDay = sel.blocks.length===0;
+  const {tot,done} = counts(sel);
+  const pct = tot? Math.round(done/tot*100):0;
+  document.getElementById("mSets").textContent = restDay? "—" : done+"/"+tot;
+  document.getElementById("mMins").textContent = restDay? "off" : sel.mins;
+  document.getElementById("mPct").textContent = restDay? "rest" : pct+"%";
+  document.getElementById("tide").style.height = restDay? "0%" : pct+"%";
+  const st = streak();
+  document.getElementById("streak").textContent = st? st+" day streak" : "start today";
+}
+
+function renderToday(){
+  view.innerHTML = "";
+  if(sel.blocks.length===0){
+    const c = document.createElement("div");
+    c.className = "callout";
+    c.innerHTML = `<b>${sel.name} day</b>No workout scheduled — full rest. Recovery is when the fat-loss work actually shows up, so don't fill this with extra cardio. If you missed a session earlier this week, mark it in the "This week" strip up top.`;
+    view.appendChild(c);
+    return;
+  }
+  const log = logFor(sel);
+  sel.blocks.forEach((b,bi)=>{
+    const sec = document.createElement("section");
+    sec.className = "block";
+    sec.innerHTML = `<div class="block-hd"><h2>${b.label}</h2><span>~${b.mins} min</span></div>`;
+
+    /* built-in program items (read + set logging = update) */
+    b.items.forEach((it,ii)=>{
+      const k = exKey(sel,bi,ii);
+      const arr = log[k] || (log[k] = new Array(it.s).fill(false));
+      const el = document.createElement("div");
+      el.className = "ex"+(arr.every(Boolean)?" done":"");
+      const form = it.form ? FORMS[it.form] : null;
+      el.innerHTML =
+        `<div class="idx">${String(ii+1).padStart(2,"0")}</div>
+         <div class="body">
+           <div class="nm">${it.n}</div>
+           <div><span class="gear">${it.g}</span>${form?`<button class="formBtn" type="button">&#9678; Form</button>`:""}<a class="yt" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodeURIComponent(it.n+" proper form technique")}">&#9654; How to</a></div>
+           <div class="prescribe"><b>${it.s}</b> × <b>${it.r}</b>${it.rest?` · rest ${it.rest}s`:""}</div>
+           ${it.note?`<div class="note">${it.note}</div>`:""}
+           ${form?`<div class="formPanel">${form.svg}<div class="cue">${form.cue}</div></div>`:""}
+           <div class="row"><div class="dots"></div></div>
+         </div>`;
+      if(form){
+        const btn = el.querySelector(".formBtn"), panel = el.querySelector(".formPanel");
+        btn.onclick = ()=>{ panel.classList.toggle("show"); btn.classList.toggle("on"); };
+      }
+      const row = el.querySelector(".row"), dots = el.querySelector(".dots");
+      for(let s=0;s<it.s;s++){
+        const d = document.createElement("button");
+        d.className = "dot"+(arr[s]?" on":"");
+        d.textContent = s+1;
+        d.setAttribute("aria-label",`Set ${s+1} of ${it.s}, ${it.n}`);
+        d.onclick = ()=>{
+          arr[s] = !arr[s];
+          if(arr[s] && it.rest) startRest(it.rest);
+          saveUserData(); renderToday(); renderHead();
+        };
+        dots.appendChild(d);
+      }
+      if(it.w){
+        row.appendChild(buildWeightWidget(k, it.n));
+      }
+      sec.appendChild(el);
+    });
+
+    /* custom exercises — full CRUD */
+    customListFor(sel.id, bi).forEach((it,ci)=>{
+      const k = "c"+bi+"-"+ci;
+      const arr = log[k] || (log[k] = new Array(it.s).fill(false));
+      const el = document.createElement("div");
+      el.className = "ex"+(arr.every(Boolean)?" done":"");
+      el.innerHTML =
+        `<div class="idx">+${ci+1}</div>
+         <div class="body">
+           <div class="nm">${it.n} <span class="custTag">custom</span></div>
+           <div><span class="gear">${it.g||"—"}</span></div>
+           <div class="prescribe"><b>${it.s}</b> × <b>${it.r}</b>${it.rest?` · rest ${it.rest}s`:""}</div>
+           ${it.note?`<div class="note">${it.note}</div>`:""}
+           <div class="row"><div class="dots"></div></div>
+           <div class="exActions">
+             <button class="editC" type="button">Edit</button>
+             <button class="del delC" type="button">Delete</button>
+           </div>
+         </div>`;
+      const row = el.querySelector(".row"), dots = el.querySelector(".dots");
+      for(let s=0;s<it.s;s++){
+        const d = document.createElement("button");
+        d.className = "dot"+(arr[s]?" on":"");
+        d.textContent = s+1;
+        d.onclick = ()=>{ arr[s]=!arr[s]; if(arr[s] && it.rest) startRest(it.rest); saveUserData(); renderToday(); renderHead(); };
+        dots.appendChild(d);
+      }
+      if(it.w){ row.appendChild(buildWeightWidget(k, it.n)); }
+      el.querySelector(".delC").onclick = ()=>{
+        if(confirm(`Delete "${it.n}"?`)){ deleteCustomExercise(sel.id, bi, ci); renderToday(); renderHead(); }
+      };
+      el.querySelector(".editC").onclick = ()=>{
+        const newName = prompt("Exercise name", it.n); if(newName===null) return;
+        const newSets = parseInt(prompt("Number of sets", it.s), 10) || it.s;
+        const newReps = prompt("Reps (e.g. 12 or 45 sec)", it.r) ?? it.r;
+        const trackW = confirm("Track weight used for this exercise (for progressive-overload history)? OK = yes, Cancel = no.");
+        updateCustomExercise(sel.id, bi, ci, {n:newName, s:newSets, r:newReps, w:trackW});
+        renderToday(); renderHead();
+      };
+      sec.appendChild(el);
+    });
+
+    /* add-exercise form (Create) */
+    const addBtn = document.createElement("button");
+    addBtn.className = "addExBtn"; addBtn.type="button";
+    addBtn.textContent = "+ Add your own exercise to this block";
+    const form = document.createElement("div");
+    form.className = "addExForm"; form.hidden = true;
+    form.innerHTML = `
+      <input class="fi" placeholder="Exercise name" data-f="n">
+      <div class="fr">
+        <input class="fi" placeholder="Equipment (optional)" data-f="g">
+        <input class="fi" placeholder="Sets (e.g. 3)" type="number" min="1" max="10" data-f="s">
+      </div>
+      <div class="fr">
+        <input class="fi" placeholder="Reps (e.g. 12 or 30 sec)" data-f="r">
+        <input class="fi" placeholder="Rest sec (optional)" type="number" min="0" data-f="rest">
+      </div>
+      <input class="fi" placeholder="Note (optional)" data-f="note">
+      <label class="checkRow">
+        <input type="checkbox" data-f="trackWeight">
+        Track weight used (for progressive-overload history)
+      </label>
+      <div class="actions">
+        <button class="btn ghost sm" type="button" data-act="cancel">Cancel</button>
+        <button class="btn sm" type="button" data-act="save">Add exercise</button>
+      </div>`;
+    addBtn.onclick = ()=>{ form.hidden = !form.hidden; };
+    form.querySelector('[data-act="cancel"]').onclick = ()=>{ form.hidden = true; };
+    form.querySelector('[data-act="save"]').onclick = ()=>{
+      const g = f => form.querySelector(`[data-f="${f}"]`).value.trim();
+      const n = g("n"); if(!n){ alert("Give the exercise a name."); return; }
+      const s = parseInt(g("s"),10) || 3;
+      const trackWeight = form.querySelector('[data-f="trackWeight"]').checked;
+      addCustomExercise(sel.id, bi, { n, g:g("g"), s, r:g("r")||"12", rest:parseInt(g("rest"),10)||0, note:g("note"), w:trackWeight });
+      renderToday(); renderHead();
+    };
+    sec.appendChild(addBtn);
+    sec.appendChild(form);
+
+    view.appendChild(sec);
+  });
+
+  const c = document.createElement("div");
+  c.className = "callout";
+  c.innerHTML = `<b>Why the reps are high and the weight is light</b>This plan is built to lean you out, not bulk you up. Stay in the prescribed rep range and keep the weight light enough that the last 2–3 reps are genuinely hard — that's enough stimulus to shape without adding size. The fat loss itself happens in the kitchen, in a calorie deficit; the training just decides what shows up underneath.`;
+  view.appendChild(c);
+}
+
+function renderWeek(){
+  view.innerHTML = "";
+  PLAN.forEach(d=>{
+    const card = document.createElement("div");
+    card.className = "wcard";
+    const lifts = d.blocks.reduce((n,b)=>n+b.items.length,0);
+    card.innerHTML =
+      `<div class="t"><div class="nm">${d.name}</div><div class="dy">${d.tag.split(" · ")[1]}</div></div>
+       <div class="sub">${d.sub}</div>
+       <div class="prescribe">${lifts? `${lifts} exercises · ${d.mins} min` : "Full rest — no workout"}</div>`;
+    card.onclick = ()=>{ sel=d; tab="today";
+      document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("on",x.dataset.tab==="today"));
+      render(); window.scrollTo({top:0,behavior:"smooth"}); };
+    view.appendChild(card);
+  });
+  const c = document.createElement("div");
+  c.className="callout";
+  c.innerHTML = `<b>Every sixth week</b>Cut every set count in half and keep the same weights. You'll come back stronger than if you'd pushed through — that's the whole reason planned deloads exist.`;
+  view.appendChild(c);
+}
+
+function renderGear(){
+  view.innerHTML = "";
+  GEAR.forEach(([title,items])=>{
+    const s = document.createElement("div");
+    s.className="gsec";
+    s.innerHTML = `<h3>${title}</h3>`+items.map(([n,u])=>
+      `<div class="gitem"><div>${n}</div><span>${u}</span></div>`).join("");
+    view.appendChild(s);
+  });
+  const c = document.createElement("div");
+  c.className="callout";
+  c.innerHTML = `<b>Not in this gym</b>No hip thrust machine, no cable ankle strap, no barbell collars in the photos. Hip thrusts go on the flat bench with a barbell; for kickbacks, loop the cable handle around your ankle. Ask the trainer for collars before you squat heavy.`;
+  view.appendChild(c);
+}
+
+function renderProfile(){
+  view.innerHTML = "";
+  const sv = S.survey || {};
+  const wrap = document.createElement("div");
+  wrap.innerHTML = `
+    <div class="pcard">
+      <div class="pgrid">
+        <div><div class="lbl">Current weight</div><div class="val">${sv.currentWeight? sv.currentWeight+" kg":"—"}</div></div>
+        <div><div class="lbl">Goal weight</div><div class="val">${sv.goalWeight? sv.goalWeight+" kg":"—"}</div></div>
+        <div><div class="lbl">Ideal weight</div><div class="val">${sv.idealWeight? sv.idealWeight+" kg":"—"}</div></div>
+        <div><div class="lbl">Primary goal</div><div class="val">${sv.goal||"—"}</div></div>
+        <div><div class="lbl">Training days/week</div><div class="val">${sv.days||"—"}</div></div>
+      </div>
+      ${sv.injuries?`<div class="sec"><div class="lbl">Injuries / limitations</div><div class="val text">${sv.injuries}</div></div>`:""}
+      ${sv.comments?`<div class="sec"><div class="lbl">Comments</div><div class="val text">${sv.comments}</div></div>`:""}
+      ${(sv.photos&&sv.photos.length)?`<div class="sec"><div class="lbl">Gym photos</div><div class="pphotos">${sv.photos.map(p=>`<img src="${p}">`).join("")}</div></div>`:""}
+      <button class="btn ghost" id="bEditSurvey">Edit my details</button>
+    </div>`;
+  view.appendChild(wrap);
+  document.getElementById("bEditSurvey").onclick = openSurvey;
+}
+
+/* ============================================================
+   REST TIMER
+   ============================================================ */
+let rT=null, rLeft=0;
+const rest = document.getElementById("rest"), rclock = document.getElementById("rclock");
+function paint(){ rclock.textContent = Math.floor(rLeft/60)+":"+String(rLeft%60).padStart(2,"0"); }
+function startRest(sec){
+  rLeft = sec; paint(); rest.classList.add("up");
+  clearInterval(rT);
+  rT = setInterval(()=>{ rLeft--; paint(); if(rLeft<=0){ clearInterval(rT); rest.classList.remove("up"); } },1000);
+}
+document.getElementById("rAdd").onclick = ()=>{ rLeft+=30; paint(); };
+document.getElementById("rSkip").onclick = ()=>{ clearInterval(rT); rest.classList.remove("up"); };
+
+/* ============================================================
+   TABS
+   ============================================================ */
+document.querySelectorAll("nav button").forEach(b=>{
+  b.onclick = ()=>{
+    document.querySelectorAll("nav button").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on"); tab = b.dataset.tab; render();
+  };
+});
+document.getElementById("bExp").onclick = exportData;
+document.getElementById("bImp").onclick = importData;
+document.getElementById("bLogout").onclick = doLogout;
+
+/* ============================================================
+   ONBOARDING SURVEY
+   ============================================================ */
+let surveyPhotos = [];
+function renderSurveyDots(){
+  const el = document.getElementById("surveyDots");
+  el.innerHTML = "";
+  for(let i=0;i<8;i++){ const s=document.createElement("span"); el.appendChild(s); }
+}
+function bindRadioRow(id){
+  const row = document.getElementById(id);
+  row.querySelectorAll("button").forEach(btn=>{
+    btn.onclick = ()=>{
+      row.querySelectorAll("button").forEach(b=>b.classList.remove("on"));
+      btn.classList.add("on");
+    };
+  });
+}
+bindRadioRow("svGoalRow");
+bindRadioRow("svDaysRow");
+
+function renderPhotoGrid(){
+  const grid = document.getElementById("svPhotoGrid");
+  grid.querySelectorAll(".photoThumb").forEach(n=>n.remove());
+  surveyPhotos.forEach((src,i)=>{
+    const t = document.createElement("div");
+    t.className = "photoThumb";
+    t.innerHTML = `<img src="${src}"><button type="button" aria-label="Remove photo">&times;</button>`;
+    t.querySelector("button").onclick = ()=>{ surveyPhotos.splice(i,1); renderPhotoGrid(); };
+    grid.insertBefore(t, document.getElementById("svPhotoAdd"));
+  });
+  document.getElementById("svPhotoAdd").style.display = surveyPhotos.length>=5 ? "none" : "";
+}
+function downscaleImage(file){
+  return new Promise((resolve)=>{
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      img.onload = ()=>{
+        const maxDim = 500;
+        let {width,height} = img;
+        if(width>height && width>maxDim){ height*=maxDim/width; width=maxDim; }
+        else if(height>maxDim){ width*=maxDim/height; height=maxDim; }
+        const canvas = document.createElement("canvas");
+        canvas.width=width; canvas.height=height;
+        canvas.getContext("2d").drawImage(img,0,0,width,height);
+        resolve(canvas.toDataURL("image/jpeg",0.7));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+document.getElementById("svPhotoAdd").onclick = ()=> document.getElementById("svPhotoInput").click();
+document.getElementById("svPhotoInput").onchange = async (e)=>{
+  const files = Array.from(e.target.files).slice(0, 5 - surveyPhotos.length);
+  for(const f of files){ surveyPhotos.push(await downscaleImage(f)); }
+  renderPhotoGrid();
+  e.target.value = "";
+};
+
+function openSurvey(){
+  const sv = S.survey || {};
+  document.getElementById("svCurrentWeight").value = sv.currentWeight||"";
+  document.getElementById("svGoalWeight").value = sv.goalWeight||"";
+  document.getElementById("svIdealWeight").value = sv.idealWeight||"";
+  document.getElementById("svInjuries").value = sv.injuries||"";
+  document.getElementById("svComments").value = sv.comments||"";
+  surveyPhotos = (sv.photos||[]).slice();
+  renderPhotoGrid();
+  ["svGoalRow","svDaysRow"].forEach(id=>{
+    document.getElementById(id).querySelectorAll("button").forEach(b=>b.classList.remove("on"));
+  });
+  if(sv.goal) document.querySelectorAll('#svGoalRow button').forEach(b=>{ if(b.dataset.v===sv.goal) b.classList.add("on"); });
+  if(sv.days) document.querySelectorAll('#svDaysRow button').forEach(b=>{ if(b.dataset.v===sv.days) b.classList.add("on"); });
+  document.getElementById("authScreen").hidden = true;
+  document.getElementById("appScreen").hidden = true;
+  document.getElementById("surveyScreen").hidden = false;
+  window.scrollTo(0,0);
+}
+document.getElementById("surveyForm").onsubmit = (e)=>{
+  e.preventDefault();
+  const goalBtn = document.querySelector("#svGoalRow button.on");
+  const daysBtn = document.querySelector("#svDaysRow button.on");
+  S.survey = {
+    currentWeight: document.getElementById("svCurrentWeight").value,
+    goalWeight: document.getElementById("svGoalWeight").value,
+    idealWeight: document.getElementById("svIdealWeight").value,
+    goal: goalBtn? goalBtn.dataset.v : (S.survey&&S.survey.goal) || "",
+    days: daysBtn? daysBtn.dataset.v : (S.survey&&S.survey.days) || "",
+    injuries: document.getElementById("svInjuries").value,
+    comments: document.getElementById("svComments").value,
+    photos: surveyPhotos.slice(),
+    completedAt: Date.now()
+  };
+  saveUserData();
+  showApp();
+};
+
+/* ============================================================
+   SCREEN SWITCHING + AUTH WIRING
+   ============================================================ */
+function showAuth(){
+  document.getElementById("authScreen").hidden = false;
+  document.getElementById("surveyScreen").hidden = true;
+  document.getElementById("appScreen").hidden = true;
+}
+function showApp(){
+  document.getElementById("authScreen").hidden = true;
+  document.getElementById("surveyScreen").hidden = true;
+  document.getElementById("appScreen").hidden = false;
+  render();
+}
+function bootAfterLogin(username){
+  CURRENT_USER = username;
+  loadUserData();
+  if(!S.survey){ renderSurveyDots(); openSurvey(); }
+  else { showApp(); }
+}
+
+document.getElementById("tabLogin").onclick = ()=>{
+  document.getElementById("tabLogin").classList.add("on");
+  document.getElementById("tabSignup").classList.remove("on");
+  document.getElementById("loginForm").hidden = false;
+  document.getElementById("signupForm").hidden = true;
+};
+document.getElementById("tabSignup").onclick = ()=>{
+  document.getElementById("tabSignup").classList.add("on");
+  document.getElementById("tabLogin").classList.remove("on");
+  document.getElementById("signupForm").hidden = false;
+  document.getElementById("loginForm").hidden = true;
+};
+document.getElementById("loginForm").onsubmit = async (e)=>{
+  e.preventDefault();
+  const err = document.getElementById("liErr");
+  err.hidden = true;
+  const u = document.getElementById("liUser").value, p = document.getElementById("liPass").value;
+  const res = await doLogin(u,p);
+  if(res){ err.textContent = res; err.hidden = false; return; }
+  bootAfterLogin(u.trim().toLowerCase());
+};
+document.getElementById("signupForm").onsubmit = async (e)=>{
+  e.preventDefault();
+  const err = document.getElementById("suErr");
+  err.hidden = true;
+  const u = document.getElementById("suUser").value, p = document.getElementById("suPass").value;
+  const res = await doSignup(u,p);
+  if(res){ err.textContent = res; err.hidden = false; return; }
+  bootAfterLogin(u.trim().toLowerCase());
+};
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+(async function boot(){
+  await ensureDemoUser();
+  const session = getSession();
+  if(session){ bootAfterLogin(session); }
+  else { showAuth(); }
+})();
+</script>
+</body>
+</html>
